@@ -26,6 +26,13 @@ export interface Recipe {
   yieldPercent: number; // after trim/shrink
   sellPrice: number;
   dailySales: number[]; // last 14 days
+  // UI-specific fields (added for frontend demo)
+  description?: string;
+  prepTime?: number; // minutes
+  servings?: number;
+  difficulty?: "easy" | "medium" | "hard";
+  popularity?: number; // derived or explicit
+  imageUrl?: string;
 }
 
 export interface Order {
@@ -438,6 +445,11 @@ export const recipes: Recipe[] = [
       { ingredientId: "shredded-lettuce", qty: 0.05, unit: "lbs" },
     ],
     dailySales: genSales(55, "rising"),    // burrito sales climbing
+    description: "A magical blend of seasoned beef, rice, and cheese wrapped in a soft tortilla.",
+    prepTime: 10,
+    servings: 1,
+    difficulty: "easy",
+    popularity: 120,
   },
   {
     id: "sherwood-crunch",
@@ -454,6 +466,11 @@ export const recipes: Recipe[] = [
       { ingredientId: "sour-cream", qty: 0.05, unit: "qt" },
     ],
     dailySales: genSales(62, "spike"),    // crunchwrap going viral
+    description: "Crunchy, cheesy, and packed with flavor. A true Sherwood classic.",
+    prepTime: 15,
+    servings: 1,
+    difficulty: "medium",
+    popularity: 150,
   },
   {
     id: "outlaw-steak-taco",
@@ -468,6 +485,11 @@ export const recipes: Recipe[] = [
       { ingredientId: "cheddar-cheese", qty: 0.04, unit: "lbs" },
     ],
     dailySales: genSales(40, "spike"),    // steak tacos surging
+    description: "Tender steak strips with fresh toppings in a crunchy shell.",
+    prepTime: 12,
+    servings: 2,
+    difficulty: "medium",
+    popularity: 95,
   },
   {
     id: "forest-quesadilla",
@@ -482,6 +504,11 @@ export const recipes: Recipe[] = [
       { ingredientId: "nacho-cheese", qty: 0.05, unit: "lbs" },
     ],
     dailySales: genSales(38, "falling"), // quesadilla losing steam
+    description: "Grilled chicken and melted cheese in a golden toasted tortilla.",
+    prepTime: 15,
+    servings: 2,
+    difficulty: "easy",
+    popularity: 80,
   },
   {
     id: "merry-nachos",
