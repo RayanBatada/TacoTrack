@@ -26,6 +26,8 @@ import {
   AlertOctagon,
   Activity,
   ChevronDown,
+  Maximize2,
+  X,
 } from "lucide-react";
 
 // Data functions and types from our database
@@ -112,6 +114,9 @@ export default function HomePage() {
     generateForecast,
   } = useForecast();
   const [showForecast, setShowForecast] = useState(false);
+
+  // FULLSCREEN CHAT STATE
+  const [isChatFullscreen, setIsChatFullscreen] = useState(false);
 
   // REFERENCE FOR AUTO-SCROLLING CHAT
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -393,12 +398,73 @@ export default function HomePage() {
   }
 
   // ===========================================================================
+  // FULLSCREEN CHAT RENDER - Expanded chat view
+  // ===========================================================================
+  if (isChatFullscreen) {
+    return (
+      <div className="fixed inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-6 z-50 flex flex-col font-inter">
+        <div className="glass-card rounded-xl p-5 flex flex-col h-full relative">
+          <div className="flex items-center justify-between mb-2 text-warning shrink-0">
+            <div className="flex items-center gap-2">
+              <MessageSquare className="h-4 w-4" />
+              <h2 className="font-bold text-sm tracking-wide text-[15px]">TacoTalk AI - Full Screen</h2>
+            </div>
+            <button
+              onClick={() => setIsChatFullscreen(false)}
+              className="p-1 hover:bg-secondary/30 rounded-md transition-colors"
+              title="Exit fullscreen"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto space-y-3 mb-3 pr-2 text-sm min-h-0">
+            {chatMessages.map((msg, i) => (
+              <div
+                key={i}
+                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+              >
+                <div
+                  className={`max-w-[70%] rounded-lg px-3 py-2 ${msg.role === "user" ? "bg-primary/20 text-primary-foreground border border-primary/20" : "bg-secondary text-muted-foreground"} prose prose-sm prose-invert max-w-none break-words`}
+                >
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.text}</ReactMarkdown>
+                </div>
+              </div>
+            ))}
+            <div ref={messagesEndRef} />
+          </div>
+
+          <div className="mt-auto">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleChat()}
+                placeholder="Ask Taco Talk..."
+                className="flex-1 rounded-md border border-primary/20 bg-secondary px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none"
+              />
+              <button
+                onClick={handleChat}
+                className="h-8 w-8 flex items-center justify-center rounded-md bg-primary/20 text-primary hover:bg-primary/30"
+              >
+                <Send className="h-3 w-3" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ===========================================================================
   // MAIN RENDER - The actual dashboard UI
   // ===========================================================================
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-4">
+    <div className="h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-6 font-inter overflow-hidden flex flex-col">
+      <div className="flex-1 min-h-0 flex flex-col space-y-4">
       {/* TOP SECTION - Action Required & Trends */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-[460px]">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 min-h-0">
         {/* LEFT COLUMN - ACTION REQUIRED TABLE */}
         <div className="glass-card rounded-xl p-5 flex flex-col relative overflow-hidden">
           <div className="flex items-center gap-2 mb-4 text-white">
@@ -406,61 +472,63 @@ export default function HomePage() {
             <h2 className="font-bold tracking-wide">ACTION REQUIRED</h2>
           </div>
 
-          <div className="grid grid-cols-3 gap-4 mb-3 px-2">
+          <div className="grid grid-cols-4 gap-3 mb-3 px-2">
             <div className="text-xs font-semibold text-white uppercase tracking-wider">
-              Product Name
+              Product
             </div>
             <div className="text-xs font-semibold text-white uppercase tracking-wider">
-              Quantity Needed
+              Qty
+            </div>
+            <div className="text-xs font-semibold text-white uppercase tracking-wider text-center">
+              Status
             </div>
             <div className="text-xs font-semibold text-white uppercase tracking-wider text-right">
-              Needed By
+              Urgency
             </div>
           </div>
 
           <div className="border-t border-white/10 mb-3" />
 
-          <div className="flex-1 overflow-y-auto pr-2 space-y-3 pb-2">
+          <div className="space-y-2">
             {stockItems.slice(0, 5).map((item) => {
               const isCritical = item.days <= 2;
               return (
                 <div
                   key={item.id}
-                  className={`grid grid-cols-3 gap-4 px-3 py-3.5 rounded-lg border transition-colors ${
+                  className={`grid grid-cols-4 gap-3 px-3 py-2.5 rounded-lg border transition-colors ${
                     isCritical
                       ? "bg-destructive/10 border-destructive/20"
                       : "bg-secondary/30 border-white/5 hover:bg-secondary/50"
                   }`}
                 >
-                  <div className="flex items-center">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-white truncate">
-                        {item.name}
-                      </p>
-                      {isCritical && (
-                        <span className="inline-block mt-2 bg-destructive text-white text-[9px] px-1.5 py-0.5 rounded uppercase font-bold">
-                          Order Now
-                        </span>
-                      )}
-                    </div>
+                  <div className="flex items-center min-w-0">
+                    <p className="text-xs font-semibold text-white truncate">
+                      {item.name}
+                    </p>
                   </div>
 
                   <div className="flex items-center">
-                    <span className="text-sm font-semibold text-white">
-                      {item.suggestedQty} {item.unit}
+                    <span className="text-xs font-semibold text-white">
+                      {item.suggestedQty}
                     </span>
                   </div>
 
-                  <div className="flex items-center justify-end">
-                    <div className="text-right">
-                      <span
-                        className={`text-sm font-bold ${
-                          isCritical ? "text-destructive" : "text-white"
-                        }`}
-                      >
-                        {item.days.toFixed(1)}d
+                  <div className="flex items-center justify-center">
+                    {isCritical && (
+                      <span className="bg-destructive text-white text-[8px] px-2 py-1 rounded-full uppercase font-bold">
+                        Order Now
                       </span>
-                    </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-end">
+                    <span
+                      className={`text-xs font-bold ${
+                        isCritical ? "text-destructive" : "text-white"
+                      }`}
+                    >
+                      {item.days.toFixed(1)}d
+                    </span>
                   </div>
                 </div>
               );
@@ -714,14 +782,23 @@ export default function HomePage() {
       </div>
 
       {/* BOTTOM SECTION - TacoTalk AI Chat & Waste Indicator */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-[280px]">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 min-h-0">
         {/* LEFT COLUMN - TACOTALK AI CHATBOT */}
         <div className="glass-card rounded-xl p-5 flex flex-col relative h-full min-h-0">
-          <div className="flex items-center gap-2 mb-2 text-warning shrink-0">
-            <MessageSquare className="h-4 w-4" />
-            <h2 className="font-bold text-sm tracking-wide text-[15px]">
-              TacoTalk AI
-            </h2>
+          <div className="flex items-center justify-between gap-2 mb-2 text-warning shrink-0">
+            <div className="flex items-center gap-2">
+              <MessageSquare className="h-4 w-4" />
+              <h2 className="font-bold text-sm tracking-wide text-[15px]">
+                TacoTalk AI
+              </h2>
+            </div>
+            <button
+              onClick={() => setIsChatFullscreen(true)}
+              className="p-1 hover:bg-secondary/30 rounded-md transition-colors"
+              title="Expand to fullscreen"
+            >
+              <Maximize2 className="h-4 w-4" />
+            </button>
           </div>
 
           <div className="flex-1 overflow-y-auto space-y-3 mb-3 pr-1 text-sm min-h-0">
@@ -868,6 +945,7 @@ export default function HomePage() {
             )}
           </div>
         </div>
+      </div>
       </div>
     </div>
   );
