@@ -48,18 +48,22 @@ export default function RecipesPage() {
   const [newRecipeDesc, setNewRecipeDesc] = useState("");
   const [newRecipePrep, setNewRecipePrep] = useState("");
   const [newRecipeServings, setNewRecipeServings] = useState("");
-  const [newRecipeDifficulty, setNewRecipeDifficulty] = useState<"easy" | "medium" | "hard">("medium");
+  const [newRecipeDifficulty, setNewRecipeDifficulty] = useState<
+    "easy" | "medium" | "hard"
+  >("medium");
   const [newRecipeCategory, setNewRecipeCategory] = useState("Specialties");
-  const [newRecipeIngredients, setNewRecipeIngredients] = useState<{ id: string; qty: string }[]>([]);
+  const [newRecipeIngredients, setNewRecipeIngredients] = useState<
+    { id: string; qty: string }[]
+  >([]);
 
   const filteredRecipes = recipes
     .filter(
       (r) =>
-        r.name.toLowerCase().includes(search.toLowerCase()) ||
-        (r.description || "").toLowerCase().includes(search.toLowerCase()),
+        r.name.toLowerCase().includes(search.toLowerCase()),
     )
     .sort((a, b) => {
-      if (sort === "popularity") return (b.popularity || 0) - (a.popularity || 0);
+      if (sort === "popularity")
+        return (b.popularity || 0) - (a.popularity || 0);
       if (sort === "time") return (a.prepTime || 0) - (b.prepTime || 0);
       return a.name.localeCompare(b.name);
     });
@@ -74,7 +78,11 @@ export default function RecipesPage() {
     setNewRecipeIngredients([...newRecipeIngredients, { id: "", qty: "" }]);
   };
 
-  const updateIngredient = (index: number, field: "id" | "qty", value: string) => {
+  const updateIngredient = (
+    index: number,
+    field: "id" | "qty",
+    value: string,
+  ) => {
     const updated = [...newRecipeIngredients];
     updated[index] = { ...updated[index], [field]: value };
     setNewRecipeIngredients(updated);
@@ -156,7 +164,10 @@ export default function RecipesPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Category</Label>
-                  <Select value={newRecipeCategory} onValueChange={setNewRecipeCategory}>
+                  <Select
+                    value={newRecipeCategory}
+                    onValueChange={setNewRecipeCategory}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
@@ -222,7 +233,12 @@ export default function RecipesPage() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <Label>Ingredients</Label>
-                  <Button variant="ghost" size="sm" onClick={handleAddIngredient} className="text-xs">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleAddIngredient}
+                    className="text-xs"
+                  >
                     <Plus className="mr-1 h-3 w-3" /> Add Ingredient
                   </Button>
                 </div>
@@ -231,10 +247,16 @@ export default function RecipesPage() {
                     {newRecipeIngredients.map((item, i) => (
                       <div key={i} className="flex gap-2 items-end">
                         <div className="flex-1 space-y-1">
-                          {i === 0 && <span className="text-[10px] text-muted-foreground">Ingredient</span>}
+                          {i === 0 && (
+                            <span className="text-[10px] text-muted-foreground">
+                              Ingredient
+                            </span>
+                          )}
                           <Select
                             value={item.id}
-                            onValueChange={(val) => updateIngredient(i, "id", val)}
+                            onValueChange={(val) =>
+                              updateIngredient(i, "id", val)
+                            }
                           >
                             <SelectTrigger className="h-8 text-xs">
                               <SelectValue placeholder="Select..." />
@@ -249,13 +271,19 @@ export default function RecipesPage() {
                           </Select>
                         </div>
                         <div className="w-20 space-y-1">
-                          {i === 0 && <span className="text-[10px] text-muted-foreground">Qty</span>}
+                          {i === 0 && (
+                            <span className="text-[10px] text-muted-foreground">
+                              Qty
+                            </span>
+                          )}
                           <Input
                             className="h-8 text-xs"
                             type="number"
                             placeholder="1"
                             value={item.qty}
-                            onChange={(e) => updateIngredient(i, "qty", e.target.value)}
+                            onChange={(e) =>
+                              updateIngredient(i, "qty", e.target.value)
+                            }
                           />
                         </div>
                         <Button
@@ -278,7 +306,9 @@ export default function RecipesPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                Cancel
+              </Button>
               <Button onClick={handleCreateRecipe}>Create Recipe</Button>
             </DialogFooter>
           </DialogContent>
@@ -294,7 +324,7 @@ export default function RecipesPage() {
           </div>
           <p className="text-lg font-bold">
             {recipes.reduce(
-              (max, r) => ((r.popularity || 0) > max ? (r.popularity || 0) : max),
+              (max, r) => ((r.popularity || 0) > max ? r.popularity || 0 : max),
               0,
             )}{" "}
             orders
@@ -307,7 +337,8 @@ export default function RecipesPage() {
           </div>
           <p className="text-lg font-bold">
             {Math.round(
-              recipes.reduce((sum, r) => sum + (r.prepTime || 0), 0) / recipes.length,
+              recipes.reduce((sum, r) => sum + (r.prepTime || 0), 0) /
+                recipes.length,
             )}{" "}
             min
           </p>
@@ -347,10 +378,11 @@ export default function RecipesPage() {
           <button
             key={s.value}
             onClick={() => setSort(s.value)}
-            className={`flex-1 rounded-md py-1.5 text-xs font-medium transition-all ${sort === s.value
+            className={`flex-1 rounded-md py-1.5 text-xs font-medium transition-all ${
+              sort === s.value
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
-              }`}
+            }`}
           >
             {s.label}
           </button>
@@ -393,8 +425,9 @@ export default function RecipesPage() {
                   <>
                     <span className="text-muted-foreground">·</span>
                     <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${difficultyColors[recipe.difficulty]
-                        }`}
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                        difficultyColors[recipe.difficulty]
+                      }`}
                     >
                       {recipe.difficulty}
                     </span>

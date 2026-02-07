@@ -177,7 +177,7 @@ export default function IngredientDetailPage({
                   fontSize: 12,
                   color: "#f0f0f5",
                 }}
-                formatter={(v: number) => [`${v} ${ingredient.unit}`, "Stock"]}
+                formatter={(v?: number) => [`${v ?? 0} ${ingredient.unit}`, "Stock"]}
               />
               <ReferenceLine
                 y={0}
@@ -220,7 +220,7 @@ export default function IngredientDetailPage({
                   fontSize: 12,
                   color: "#f0f0f5",
                 }}
-                formatter={(v: number) => [`${v} ${ingredient.unit}`, "Used"]}
+                formatter={(v?: number) => [`${v ?? 0} ${ingredient.unit}`, "Used"]}
               />
               <Bar
                 dataKey="usage"

@@ -12,7 +12,7 @@ import {
 import { ingredients, generateSuggestedOrders } from "@/lib/data";
 
 export default function OrdersPage() {
-  const [orders] = useState(generateSuggestedOrders);
+  const [orders] = useState(() => generateSuggestedOrders(ingredients));
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   const toggleExpand = (id: string) => {
@@ -83,7 +83,7 @@ export default function OrdersPage() {
               {isExpanded && (
                 <div className="border-t border-white/[0.04] px-4 pb-4">
                   <div className="mt-3 space-y-2">
-                    {order.items.map((item) => {
+                    {order.items.map((item: typeof order.items[number]) => {
                       const ing = ingredients.find(
                         (i) => i.id === item.ingredientId,
                       );
