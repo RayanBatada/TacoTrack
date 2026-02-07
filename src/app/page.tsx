@@ -31,11 +31,11 @@ import {
 } from "recharts";
 
 const tooltipStyle = {
-  background: "#162418",
-  border: "1px solid rgba(74,222,128,0.1)",
+  background: "#2e1065", // Deep Purple
+  border: "1px solid rgba(217, 70, 239, 0.2)",
   borderRadius: "8px",
   fontSize: 12,
-  color: "#eef2e8",
+  color: "#ffffff",
 };
 
 export default function HomePage() {
@@ -45,7 +45,7 @@ export default function HomePage() {
   >([
     {
       role: "bot",
-      text: "Hey! I can help with inventory questions, menu analysis, and ordering suggestions. What do you need?",
+      text: "Hola! I'm Taco Bot. 🌮 specialized in spicy inventory management. How can I help?",
     },
   ]);
 
@@ -91,8 +91,8 @@ export default function HomePage() {
   const ingChange =
     lastWeekIngUsage > 0
       ? Math.round(
-          ((thisWeekIngUsage - lastWeekIngUsage) / lastWeekIngUsage) * 100
-        )
+        ((thisWeekIngUsage - lastWeekIngUsage) / lastWeekIngUsage) * 100
+      )
       : 0;
 
   // Dish sales trend data
@@ -168,18 +168,18 @@ export default function HomePage() {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-sm text-[#7a9a7e]">
+          <p className="text-sm text-muted-foreground">
             Saturday, Feb 7 — Overview
           </p>
         </div>
         {/* Quick stats */}
         <div className="flex gap-4">
-          <QuickPill label="Low Stock" value={`${stockItems.filter((i) => i.days <= 3).length} items`} color="text-[#f59e0b]" />
-          <QuickPill label="This Week Sales" value={`${thisWeekTotal}`} color="text-[#4ade80]" />
+          <QuickPill label="Low Stock" value={`${stockItems.filter((i) => i.days <= 3).length} items`} color="text-warning" />
+          <QuickPill label="This Week Sales" value={`${thisWeekTotal}`} color="text-success" />
           <QuickPill
             label="Avg Food Cost"
             value={`${Math.round(recipes.reduce((s, r) => s + foodCostPercent(r), 0) / recipes.length)}%`}
-            color="text-[#a78bfa]"
+            color="text-primary"
           />
         </div>
       </div>
@@ -190,7 +190,7 @@ export default function HomePage() {
         <div className="glass-card rounded-xl p-5">
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Package className="h-4 w-4 text-[#4ade80]" />
+              <Package className="h-4 w-4 text-primary" />
               <h2 className="text-sm font-semibold">Ingredient Usage</h2>
             </div>
             <TrendBadge value={ingChange} />
@@ -200,25 +200,25 @@ export default function HomePage() {
               <AreaChart data={ingredientTrendData}>
                 <defs>
                   <linearGradient id="ingGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#4ade80" stopOpacity={0.3} />
-                    <stop offset="100%" stopColor="#4ade80" stopOpacity={0} />
+                    <stop offset="0%" stopColor="#d946ef" stopOpacity={0.3} />
+                    <stop offset="100%" stopColor="#d946ef" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <XAxis
                   dataKey="day"
-                  tick={{ fontSize: 10, fill: "#7a9a7e" }}
+                  tick={{ fontSize: 10, fill: "#d8b4fe" }}
                   axisLine={false}
                   tickLine={false}
                 />
                 <YAxis
-                  tick={{ fontSize: 10, fill: "#7a9a7e" }}
+                  tick={{ fontSize: 10, fill: "#d8b4fe" }}
                   axisLine={false}
                   tickLine={false}
                   width={35}
                 />
                 <Tooltip
                   contentStyle={tooltipStyle}
-                  formatter={(value: number, name: string) => [
+                  formatter={(value: number | undefined, name: string | undefined) => [
                     name === "value" ? `$${value}` : `${value} units`,
                     name === "value" ? "Cost" : "Usage",
                   ]}
@@ -226,7 +226,7 @@ export default function HomePage() {
                 <Area
                   type="monotone"
                   dataKey="usage"
-                  stroke="#4ade80"
+                  stroke="#d946ef"
                   strokeWidth={2}
                   fill="url(#ingGrad)"
                 />
@@ -235,15 +235,15 @@ export default function HomePage() {
           </div>
           {/* Mini stock bars */}
           <div className="mt-4 space-y-2">
-            <p className="text-[10px] font-medium uppercase tracking-wider text-[#7a9a7e]">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
               Stock Levels
             </p>
             {stockItems.slice(0, 5).map((item) => (
               <div key={item.id} className="flex items-center gap-2">
-                <span className="w-28 truncate text-xs text-[#7a9a7e]">
+                <span className="w-28 truncate text-xs text-muted-foreground">
                   {item.name.split(" ").slice(-2).join(" ")}
                 </span>
-                <div className="flex-1 h-2 rounded-full bg-[#1a2e1e] overflow-hidden">
+                <div className="flex-1 h-2 rounded-full bg-secondary overflow-hidden">
                   <div
                     className="h-full rounded-full transition-all"
                     style={{
@@ -252,19 +252,18 @@ export default function HomePage() {
                         item.days <= 1.5
                           ? "#ef4444"
                           : item.days <= 3
-                          ? "#f59e0b"
-                          : "#4ade80",
+                            ? "#f59e0b"
+                            : "#4ade80",
                     }}
                   />
                 </div>
                 <span
-                  className={`text-xs font-semibold w-8 text-right ${
-                    item.days <= 1.5
-                      ? "text-[#ef4444]"
-                      : item.days <= 3
-                      ? "text-[#f59e0b]"
-                      : "text-[#4ade80]"
-                  }`}
+                  className={`text-xs font-semibold w-8 text-right ${item.days <= 1.5
+                    ? "text-critical"
+                    : item.days <= 3
+                      ? "text-warning"
+                      : "text-success"
+                    }`}
                 >
                   {item.days}d
                 </span>
@@ -277,7 +276,7 @@ export default function HomePage() {
         <div className="glass-card rounded-xl p-5">
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <UtensilsCrossed className="h-4 w-4 text-[#a78bfa]" />
+              <UtensilsCrossed className="h-4 w-4 text-primary" />
               <h2 className="text-sm font-semibold">Dish Sales</h2>
             </div>
             <TrendBadge value={salesChange} />
@@ -287,25 +286,25 @@ export default function HomePage() {
               <AreaChart data={dishTrendData}>
                 <defs>
                   <linearGradient id="dishGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#a78bfa" stopOpacity={0.3} />
-                    <stop offset="100%" stopColor="#a78bfa" stopOpacity={0} />
+                    <stop offset="0%" stopColor="#d946ef" stopOpacity={0.3} />
+                    <stop offset="100%" stopColor="#d946ef" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <XAxis
                   dataKey="day"
-                  tick={{ fontSize: 10, fill: "#7a9a7e" }}
+                  tick={{ fontSize: 10, fill: "#d8b4fe" }}
                   axisLine={false}
                   tickLine={false}
                 />
                 <YAxis
-                  tick={{ fontSize: 10, fill: "#7a9a7e" }}
+                  tick={{ fontSize: 10, fill: "#d8b4fe" }}
                   axisLine={false}
                   tickLine={false}
                   width={35}
                 />
                 <Tooltip
                   contentStyle={tooltipStyle}
-                  formatter={(value: number, name: string) => [
+                  formatter={(value: number | undefined, name: string | undefined) => [
                     name === "revenue" ? `$${value}` : `${value} sold`,
                     name === "revenue" ? "Revenue" : "Sales",
                   ]}
@@ -313,7 +312,7 @@ export default function HomePage() {
                 <Area
                   type="monotone"
                   dataKey="sales"
-                  stroke="#a78bfa"
+                  stroke="#d946ef"
                   strokeWidth={2}
                   fill="url(#dishGrad)"
                 />
@@ -322,7 +321,7 @@ export default function HomePage() {
           </div>
           {/* Per-dish breakdown */}
           <div className="mt-4 space-y-2">
-            <p className="text-[10px] font-medium uppercase tracking-wider text-[#7a9a7e]">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
               Today&apos;s Dish Performance
             </p>
             {recipes.map((r) => {
@@ -331,17 +330,17 @@ export default function HomePage() {
               const change =
                 yesterdaySales > 0
                   ? Math.round(
-                      ((todaySales - yesterdaySales) / yesterdaySales) * 100
-                    )
+                    ((todaySales - yesterdaySales) / yesterdaySales) * 100
+                  )
                   : 0;
               return (
                 <div key={r.id} className="flex items-center gap-2">
-                  <span className="w-32 truncate text-xs text-[#7a9a7e]">
+                  <span className="w-32 truncate text-xs text-muted-foreground">
                     {r.name}
                   </span>
-                  <div className="flex-1 h-2 rounded-full bg-[#1a2e1e] overflow-hidden">
+                  <div className="flex-1 h-2 rounded-full bg-secondary overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-[#a78bfa]"
+                      className="h-full rounded-full bg-primary"
                       style={{
                         width: `${Math.min(100, (todaySales / 120) * 100)}%`,
                       }}
@@ -351,9 +350,8 @@ export default function HomePage() {
                     {todaySales}
                   </span>
                   <span
-                    className={`text-[10px] w-10 text-right ${
-                      change >= 0 ? "text-[#4ade80]" : "text-[#ef4444]"
-                    }`}
+                    className={`text-[10px] w-10 text-right ${change >= 0 ? "text-success" : "text-destructive"
+                      }`}
                   >
                     {change >= 0 ? "+" : ""}
                     {change}%
@@ -367,23 +365,23 @@ export default function HomePage() {
         {/* BOTTOM LEFT: Top & Bottom Performers */}
         <div className="glass-card rounded-xl p-5">
           <div className="mb-4 flex items-center gap-2">
-            <TreePine className="h-4 w-4 text-[#4ade80]" />
+            <TreePine className="h-4 w-4 text-primary" />
             <h2 className="text-sm font-semibold">Food for Thought</h2>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             {/* Top 3 */}
             <div>
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[#4ade80]">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-success">
                 Top Sellers
               </p>
               <div className="space-y-3">
                 {topThree.map((item, i) => (
                   <div
                     key={item.name}
-                    className="flex items-center gap-3 rounded-lg bg-[#4ade80]/5 p-3 border border-[#4ade80]/10"
+                    className="flex items-center gap-3 rounded-lg bg-success/5 p-3 border border-success/10"
                   >
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#4ade80]/15 text-xs font-bold text-[#4ade80]">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-success/15 text-xs font-bold text-success">
                       {i + 1}
                     </span>
                     <div className="flex-1 min-w-0">
@@ -391,15 +389,15 @@ export default function HomePage() {
                         {item.name}
                       </p>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-xs text-[#7a9a7e]">
+                        <span className="text-xs text-muted-foreground">
                           {item.avgSales}/day
                         </span>
-                        <span className="text-[10px] text-[#4ade80]">
+                        <span className="text-[10px] text-success">
                           {item.margin}% margin
                         </span>
                       </div>
                     </div>
-                    <ArrowUpRight className="h-4 w-4 text-[#4ade80]" />
+                    <ArrowUpRight className="h-4 w-4 text-success" />
                   </div>
                 ))}
               </div>
@@ -407,16 +405,16 @@ export default function HomePage() {
 
             {/* Bottom 3 */}
             <div>
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[#ef4444]">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-destructive">
                 Needs Attention
               </p>
               <div className="space-y-3">
                 {bottomThree.map((item, i) => (
                   <div
                     key={item.name}
-                    className="flex items-center gap-3 rounded-lg bg-[#ef4444]/5 p-3 border border-[#ef4444]/10"
+                    className="flex items-center gap-3 rounded-lg bg-destructive/5 p-3 border border-destructive/10"
                   >
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#ef4444]/15 text-xs font-bold text-[#ef4444]">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-destructive/15 text-xs font-bold text-destructive">
                       {topSellers.length - i}
                     </span>
                     <div className="flex-1 min-w-0">
@@ -424,15 +422,15 @@ export default function HomePage() {
                         {item.name}
                       </p>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-xs text-[#7a9a7e]">
+                        <span className="text-xs text-muted-foreground">
                           {item.avgSales}/day
                         </span>
-                        <span className="text-[10px] text-[#ef4444]">
+                        <span className="text-[10px] text-destructive">
                           {item.margin}% margin
                         </span>
                       </div>
                     </div>
-                    <ArrowDownRight className="h-4 w-4 text-[#ef4444]" />
+                    <ArrowDownRight className="h-4 w-4 text-destructive" />
                   </div>
                 ))}
               </div>
@@ -440,8 +438,8 @@ export default function HomePage() {
           </div>
 
           {/* All stock visual overview */}
-          <div className="mt-5 pt-4 border-t border-[#4ade80]/[0.06]">
-            <p className="mb-3 text-[10px] font-medium uppercase tracking-wider text-[#7a9a7e]">
+          <div className="mt-5 pt-4 border-t border-primary/20">
+            <p className="mb-3 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
               Full Inventory Status
             </p>
             <div className="grid grid-cols-4 gap-2">
@@ -454,12 +452,12 @@ export default function HomePage() {
                   item.days <= 1.5
                     ? "#ef4444"
                     : item.days <= 3
-                    ? "#f59e0b"
-                    : "#4ade80";
+                      ? "#f59e0b"
+                      : "#4ade80";
                 return (
                   <div
                     key={item.id}
-                    className="rounded-lg bg-[#0d1a0f] p-2 text-center border border-[#4ade80]/[0.04]"
+                    className="rounded-lg bg-secondary p-2 text-center border border-primary/20"
                   >
                     {/* Mini circle gauge */}
                     <div className="relative mx-auto mb-1 h-10 w-10">
@@ -469,7 +467,7 @@ export default function HomePage() {
                           cy="18"
                           r="14"
                           fill="none"
-                          stroke="#1a2e1e"
+                          stroke="#2e1065"
                           strokeWidth="3"
                         />
                         <circle
@@ -490,7 +488,7 @@ export default function HomePage() {
                         {Math.round(pct)}%
                       </span>
                     </div>
-                    <p className="text-[9px] text-[#7a9a7e] truncate">
+                    <p className="text-[9px] text-muted-foreground truncate">
                       {item.name.split(" ").pop()}
                     </p>
                   </div>
@@ -503,8 +501,8 @@ export default function HomePage() {
         {/* BOTTOM RIGHT: AI Chatbot */}
         <div className="glass-card rounded-xl p-5 flex flex-col">
           <div className="mb-3 flex items-center gap-2">
-            <MessageSquare className="h-4 w-4 text-[#4ade80]" />
-            <h2 className="text-sm font-semibold">AI Assistant</h2>
+            <MessageSquare className="h-4 w-4 text-primary" />
+            <h2 className="text-sm font-semibold">Taco Bot</h2>
           </div>
 
           {/* Chat messages */}
@@ -512,16 +510,14 @@ export default function HomePage() {
             {chatMessages.map((msg, i) => (
               <div
                 key={i}
-                className={`flex ${
-                  msg.role === "user" ? "justify-end" : "justify-start"
-                }`}
+                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"
+                  }`}
               >
                 <div
-                  className={`max-w-[80%] rounded-xl px-3 py-2 text-sm ${
-                    msg.role === "user"
-                      ? "bg-[#4ade80]/15 text-[#a7f3d0]"
-                      : "bg-[#1a2e1e] text-[#d4e8d0]"
-                  }`}
+                  className={`max-w-[80%] rounded-xl px-3 py-2 text-sm ${msg.role === "user"
+                    ? "bg-primary/20 text-white"
+                    : "bg-secondary text-secondary-foreground"
+                    }`}
                 >
                   {msg.text}
                 </div>
@@ -536,12 +532,12 @@ export default function HomePage() {
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleChat()}
-              placeholder="Ask about stock, sales, orders..."
-              className="flex-1 rounded-lg border border-[#4ade80]/10 bg-[#0d1a0f] px-3 py-2 text-sm text-foreground placeholder:text-[#7a9a7e] focus:border-[#4ade80]/30 focus:outline-none"
+              placeholder="Ask Taco Bot..."
+              className="flex-1 rounded-lg border border-primary/20 bg-secondary px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none"
             />
             <button
               onClick={handleChat}
-              className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#4ade80]/15 text-[#4ade80] transition-colors hover:bg-[#4ade80]/25"
+              className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/20 text-primary transition-colors hover:bg-primary/30"
             >
               <Send className="h-4 w-4" />
             </button>
@@ -556,11 +552,10 @@ function TrendBadge({ value }: { value: number }) {
   const isUp = value >= 0;
   return (
     <span
-      className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${
-        isUp
-          ? "bg-[#4ade80]/10 text-[#4ade80]"
-          : "bg-[#ef4444]/10 text-[#ef4444]"
-      }`}
+      className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${isUp
+        ? "bg-success/10 text-success"
+        : "bg-destructive/10 text-destructive"
+        }`}
     >
       {isUp ? (
         <TrendingUp className="h-3 w-3" />
@@ -584,7 +579,7 @@ function QuickPill({
 }) {
   return (
     <div className="glass-card rounded-lg px-4 py-2">
-      <p className="text-[10px] font-medium uppercase tracking-wider text-[#7a9a7e]">
+      <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
         {label}
       </p>
       <p className={`text-sm font-bold ${color}`}>{value}</p>

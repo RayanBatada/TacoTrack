@@ -32,7 +32,7 @@ import {
   Tooltip,
 } from "recharts";
 
-const COLORS = ["#a78bfa", "#34d399", "#fbbf24", "#f472b6", "#60a5fa"];
+const COLORS = ["#d946ef", "#4ade80", "#f59e0b", "#f472b6", "#60a5fa"];
 
 export default function InsightsPage() {
   const salesData = salesTrendData();
@@ -74,10 +74,10 @@ export default function InsightsPage() {
       {/* Header */}
       <div className="mb-5">
         <div className="flex items-center gap-2">
-          <TrendingUp className="h-5 w-5 text-[#a78bfa]" />
+          <TrendingUp className="h-5 w-5 text-primary" />
           <h1 className="text-xl font-bold tracking-tight">Analytics</h1>
         </div>
-        <p className="mt-0.5 text-sm text-[#8888a0]">
+        <p className="mt-0.5 text-sm text-muted-foreground">
           Insights and trends to improve your bottom line
         </p>
       </div>
@@ -85,32 +85,32 @@ export default function InsightsPage() {
       {/* Key metrics */}
       <div className="mb-5 grid grid-cols-2 gap-3">
         <MetricCard
-          icon={<DollarSign className="h-4 w-4 text-[#34d399]" />}
+          icon={<DollarSign className="h-4 w-4 text-success" />}
           label="Weekly Revenue"
           value={`$${(totalWeeklyRevenue / 1000).toFixed(1)}k`}
           subtext={`${totalWeeklySales} items sold`}
-          color="text-[#34d399]"
+          color="text-success"
         />
         <MetricCard
-          icon={<BarChart3 className="h-4 w-4 text-[#a78bfa]" />}
+          icon={<BarChart3 className="h-4 w-4 text-primary" />}
           label="Avg Food Cost"
           value={`${avgFoodCost}%`}
           subtext={avgFoodCost < 30 ? "Below target" : "Above target"}
-          color={avgFoodCost < 30 ? "text-[#34d399]" : "text-[#fbbf24]"}
+          color={avgFoodCost < 30 ? "text-success" : "text-warning"}
         />
         <MetricCard
-          icon={<Trash2 className="h-4 w-4 text-[#ef4444]" />}
+          icon={<Trash2 className="h-4 w-4 text-destructive" />}
           label="Total Waste"
           value={`$${totalWaste.toFixed(0)}`}
           subtext={`$${wasteToday.toFixed(0)} today`}
-          color="text-[#ef4444]"
+          color="text-destructive"
         />
         <MetricCard
-          icon={<Award className="h-4 w-4 text-[#fbbf24]" />}
+          icon={<Award className="h-4 w-4 text-warning" />}
           label="Top Seller"
           value={topSellers[0]?.name.split(" ")[0] || "N/A"}
           subtext={`${topSellers[0]?.avgSales || 0}/day avg`}
-          color="text-[#fbbf24]"
+          color="text-warning"
         />
       </div>
 
@@ -124,17 +124,17 @@ export default function InsightsPage() {
             <AreaChart data={salesChartData}>
               <defs>
                 <linearGradient id="salesG" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#a78bfa" stopOpacity={0.3} />
-                  <stop offset="100%" stopColor="#a78bfa" stopOpacity={0} />
+                  <stop offset="0%" stopColor="#d946ef" stopOpacity={0.3} />
+                  <stop offset="100%" stopColor="#d946ef" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="lastWeekG" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#8888a0" stopOpacity={0.1} />
-                  <stop offset="100%" stopColor="#8888a0" stopOpacity={0} />
+                  <stop offset="0%" stopColor="#d8b4fe" stopOpacity={0.1} />
+                  <stop offset="100%" stopColor="#d8b4fe" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <XAxis
                 dataKey="day"
-                tick={{ fontSize: 10, fill: "#8888a0" }}
+                tick={{ fontSize: 10, fill: "#d8b4fe" }}
                 axisLine={false}
                 tickLine={false}
               />
@@ -149,7 +149,7 @@ export default function InsightsPage() {
               <Area
                 type="monotone"
                 dataKey="lastWeek"
-                stroke="#8888a0"
+                stroke="#d8b4fe"
                 strokeWidth={1}
                 strokeDasharray="4 4"
                 fill="url(#lastWeekG)"
@@ -157,21 +157,21 @@ export default function InsightsPage() {
               <Area
                 type="monotone"
                 dataKey="thisWeek"
-                stroke="#a78bfa"
+                stroke="#d946ef"
                 strokeWidth={2.5}
                 fill="url(#salesG)"
               />
             </AreaChart>
           </ResponsiveContainer>
         </div>
-        <div className="mt-2 flex items-center gap-4 text-[10px] text-[#8888a0]">
+        <div className="mt-2 flex items-center gap-4 text-[10px] text-muted-foreground">
           <span className="flex items-center gap-1">
-            <span className="inline-block h-0.5 w-4 rounded bg-[#a78bfa]" /> This week
+            <span className="inline-block h-0.5 w-4 rounded bg-primary" /> This week
           </span>
           <span className="flex items-center gap-1">
-            <span className="inline-block h-0.5 w-4 rounded border-t border-dashed border-[#8888a0]" /> Last week
+            <span className="inline-block h-0.5 w-4 rounded border-t border-dashed border-muted-foreground" /> Last week
           </span>
-          <span className={`ml-auto font-semibold ${weekChange >= 0 ? "text-[#34d399]" : "text-[#ef4444]"}`}>
+          <span className={`ml-auto font-semibold ${weekChange >= 0 ? "text-success" : "text-destructive"}`}>
             {weekChange >= 0 ? "+" : ""}{weekChange}% WoW
           </span>
         </div>
@@ -187,7 +187,7 @@ export default function InsightsPage() {
             <BarChart data={marginData} layout="vertical">
               <XAxis
                 type="number"
-                tick={{ fontSize: 10, fill: "#8888a0" }}
+                tick={{ fontSize: 10, fill: "#d8b4fe" }}
                 axisLine={false}
                 tickLine={false}
                 domain={[0, 100]}
@@ -195,7 +195,7 @@ export default function InsightsPage() {
               <YAxis
                 dataKey="name"
                 type="category"
-                tick={{ fontSize: 10, fill: "#8888a0" }}
+                tick={{ fontSize: 10, fill: "#d8b4fe" }}
                 axisLine={false}
                 tickLine={false}
                 width={80}
@@ -206,7 +206,7 @@ export default function InsightsPage() {
               />
               <Bar
                 dataKey="margin"
-                fill="#34d399"
+                fill="#4ade80"
                 radius={[0, 4, 4, 0]}
                 opacity={0.8}
                 name="Margin"
@@ -252,7 +252,7 @@ export default function InsightsPage() {
                   className="h-2.5 w-2.5 rounded-full"
                   style={{ background: COLORS[i % COLORS.length] }}
                 />
-                <span className="text-xs text-[#8888a0]">
+                <span className="text-xs text-muted-foreground">
                   {item.category}
                 </span>
                 <span className="text-xs font-medium">
@@ -272,7 +272,7 @@ export default function InsightsPage() {
         <div className="space-y-2.5">
           {topSellers.map((item, i) => (
             <div key={item.name} className="flex items-center gap-3">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#a78bfa]/10 text-xs font-bold text-[#a78bfa]">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
                 {i + 1}
               </span>
               <div className="flex-1 min-w-0">
@@ -280,7 +280,7 @@ export default function InsightsPage() {
               </div>
               <div className="text-right shrink-0">
                 <span className="text-sm font-semibold">{item.avgSales}/day</span>
-                <p className="text-[10px] text-[#34d399]">{item.margin}% margin</p>
+                <p className="text-[10px] text-success">{item.margin}% margin</p>
               </div>
             </div>
           ))}
@@ -291,11 +291,11 @@ export default function InsightsPage() {
 }
 
 const tooltipStyle = {
-  background: "#1a1a28",
-  border: "1px solid rgba(255,255,255,0.08)",
+  background: "#2e1065",
+  border: "1px solid rgba(217,70,239,0.2)",
   borderRadius: "8px",
   fontSize: 12,
-  color: "#f0f0f5",
+  color: "#ffffff",
 };
 
 function MetricCard({
@@ -315,12 +315,12 @@ function MetricCard({
     <div className="glass-card rounded-xl p-3.5">
       <div className="flex items-center gap-2 mb-1">
         {icon}
-        <span className="text-[10px] font-medium uppercase tracking-wider text-[#8888a0]">
+        <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
           {label}
         </span>
       </div>
       <p className={`text-xl font-bold ${color}`}>{value}</p>
-      <p className="text-[10px] text-[#8888a0]">{subtext}</p>
+      <p className="text-[10px] text-muted-foreground">{subtext}</p>
     </div>
   );
 }
@@ -337,8 +337,8 @@ function InsightCard({
   return (
     <div className="glass-card mb-5 rounded-xl p-4">
       <div className="mb-1 flex items-center gap-2">
-        <Sparkles className="h-3.5 w-3.5 text-[#a78bfa]" />
-        <span className="text-xs font-semibold uppercase tracking-wider text-[#8888a0]">
+        <Sparkles className="h-3.5 w-3.5 text-primary" />
+        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           {title}
         </span>
       </div>

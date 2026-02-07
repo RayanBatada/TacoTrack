@@ -50,48 +50,55 @@
 
 :root {
   --radius: 0.75rem;
-  --background: #0d1a0f;
-  --foreground: #eef2e8;
-  --card: #132016;
-  --card-foreground: #eef2e8;
-  --popover: #132016;
-  --popover-foreground: #eef2e8;
-  --primary: #4ade80;
-  --primary-foreground: #0d1a0f;
-  --secondary: #1a2e1e;
-  --secondary-foreground: #d4e8d0;
-  --muted: #162418;
-  --muted-foreground: #7a9a7e;
-  --accent: #1a2e1e;
-  --accent-foreground: #d4e8d0;
+  --background: #11001c;
+  /* Very Dark Purple/Black */
+  --foreground: #ffffff;
+  --card: #240a3a;
+  /* Darker Purple Card */
+  --card-foreground: #ffffff;
+  --popover: #240a3a;
+  --popover-foreground: #ffffff;
+  --primary: #9d4edd;
+  /* Rich Purple Accent from typical Taco Bell aesthetic */
+  --primary-foreground: #ffffff;
+  --secondary: #3c096c;
+  /* Deep Purple */
+  --secondary-foreground: #e9d5ff;
+  --muted: #5a189a;
+  --muted-foreground: #d8b4fe;
+  --accent: #7b2cbf;
+  --accent-foreground: #ffffff;
   --destructive: #ef4444;
-  --border: rgba(74, 222, 128, 0.1);
-  --input: rgba(74, 222, 128, 0.12);
-  --ring: #4ade80;
-  --chart-1: #4ade80;
-  --chart-2: #f59e0b;
-  --chart-3: #a78bfa;
-  --chart-4: #f472b6;
+  --border: rgba(157, 78, 221, 0.2);
+  --input: rgba(157, 78, 221, 0.2);
+  --ring: #9d4edd;
+  --chart-1: #9d4edd;
+  --chart-2: #ff9f1c;
+  /* Orange/Gold accent */
+  --chart-3: #c77dff;
+  --chart-4: #e0aaff;
   --chart-5: #60a5fa;
-  --brand: #4ade80;
-  --brand-glow: rgba(74, 222, 128, 0.3);
+  --brand: #9d4edd;
+  --brand-glow: rgba(157, 78, 221, 0.5);
   --success: #4ade80;
-  --warning: #f59e0b;
+  --warning: #ff9f1c;
   --critical: #ef4444;
-  --sidebar: #0d1a0f;
-  --sidebar-foreground: #eef2e8;
-  --sidebar-primary: #4ade80;
-  --sidebar-primary-foreground: #0d1a0f;
-  --sidebar-accent: #1a2e1e;
-  --sidebar-accent-foreground: #d4e8d0;
-  --sidebar-border: rgba(74, 222, 128, 0.1);
-  --sidebar-ring: #4ade80;
+  --sidebar: #11001c;
+  /* Match background */
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #9d4edd;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #240a3a;
+  --sidebar-accent-foreground: #e9d5ff;
+  --sidebar-border: rgba(157, 78, 221, 0.2);
+  --sidebar-ring: #9d4edd;
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -99,18 +106,37 @@
 
 /* Animations */
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 8px var(--brand-glow); }
-  50% { box-shadow: 0 0 20px var(--brand-glow), 0 0 40px rgba(74, 222, 128, 0.15); }
+
+  0%,
+  100% {
+    box-shadow: 0 0 8px var(--brand-glow);
+  }
+
+  50% {
+    box-shadow: 0 0 20px var(--brand-glow), 0 0 40px rgba(157, 78, 221, 0.3);
+  }
 }
 
 @keyframes float-up {
-  0% { opacity: 0; transform: translateY(10px); }
-  100% { opacity: 1; transform: translateY(0); }
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 .animate-pulse-glow {
@@ -122,35 +148,39 @@
 }
 
 .animate-shimmer {
-  background: linear-gradient(90deg, transparent, rgba(74, 222, 128, 0.1), transparent);
+  background: linear-gradient(90deg, transparent, rgba(157, 78, 221, 0.2), transparent);
   background-size: 200% 100%;
   animation: shimmer 3s linear infinite;
 }
 
-/* Glassmorphism card */
+/* Glassmorphism card - Adapted for Dark Purple */
 .glass-card {
-  background: rgba(19, 32, 22, 0.8);
+  background: rgba(36, 10, 58, 0.7);
+  /* Darker Purple tint */
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(74, 222, 128, 0.08);
+  border: 1px solid rgba(157, 78, 221, 0.15);
 }
 
 /* Glow border on hover */
 .glow-hover {
   transition: box-shadow 0.3s ease;
 }
+
 .glow-hover:hover {
-  box-shadow: 0 0 15px var(--brand-glow), 0 0 30px rgba(74, 222, 128, 0.1);
+  box-shadow: 0 0 15px var(--brand-glow), 0 0 30px rgba(157, 78, 221, 0.2);
 }
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 4px;
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
-  background: rgba(74, 222, 128, 0.3);
+  background: rgba(157, 78, 221, 0.5);
   border-radius: 2px;
 }
 
@@ -158,6 +188,7 @@
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
