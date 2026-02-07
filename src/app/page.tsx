@@ -1,7 +1,7 @@
 // app/page.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { chatWithGemini } from "./actions";
@@ -66,7 +66,7 @@ export default function HomePage() {
   >([
     {
       role: "bot",
-      text: "Hola! I'm Taco Bot. 🌮 What should we order today?",
+      text: "Hola! I'm Taco Talk. 🌮 specialized in spicy inventory management. How can I help?",
     },
   ]);
 
@@ -77,6 +77,15 @@ export default function HomePage() {
   const [selectedIngredient, setSelectedIngredient] = useState<string>("");
   const [selectedDish, setSelectedDish] = useState<string>("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [chatMessages]);
 
   // Fetch data from Supabase on mount
   useEffect(() => {
@@ -147,9 +156,9 @@ export default function HomePage() {
   const avgFoodCost =
     recipes.length > 0
       ? Math.round(
-          recipes.reduce((s, r) => s + foodCostPercent(r, ingredients), 0) /
-            recipes.length,
-        )
+        recipes.reduce((s, r) => s + foodCostPercent(r, ingredients), 0) /
+        recipes.length,
+      )
       : 0;
 
   // Trend Data Preparation
@@ -425,31 +434,29 @@ export default function HomePage() {
               <div className="absolute top-full left-0 right-0 mt-1 bg-secondary border border-primary/20 rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
                 {trendView === "ingredients"
                   ? ingredients.map((ing) => (
-                      <button
-                        key={ing.id}
-                        onClick={() => handleSelectionChange(ing.id)}
-                        className={`w-full px-3 py-2 text-left text-sm hover:bg-primary/10 transition-colors ${
-                          selectedIngredient === ing.id
-                            ? "bg-primary/20 text-primary font-semibold"
-                            : "text-foreground"
+                    <button
+                      key={ing.id}
+                      onClick={() => handleSelectionChange(ing.id)}
+                      className={`w-full px-3 py-2 text-left text-sm hover:bg-primary/10 transition-colors ${selectedIngredient === ing.id
+                        ? "bg-primary/20 text-primary font-semibold"
+                        : "text-foreground"
                         }`}
-                      >
-                        {ing.name}
-                      </button>
-                    ))
+                    >
+                      {ing.name}
+                    </button>
+                  ))
                   : recipes.map((recipe) => (
-                      <button
-                        key={recipe.id}
-                        onClick={() => handleSelectionChange(recipe.id)}
-                        className={`w-full px-3 py-2 text-left text-sm hover:bg-primary/10 transition-colors ${
-                          selectedDish === recipe.id
-                            ? "bg-primary/20 text-primary font-semibold"
-                            : "text-foreground"
+                    <button
+                      key={recipe.id}
+                      onClick={() => handleSelectionChange(recipe.id)}
+                      className={`w-full px-3 py-2 text-left text-sm hover:bg-primary/10 transition-colors ${selectedDish === recipe.id
+                        ? "bg-primary/20 text-primary font-semibold"
+                        : "text-foreground"
                         }`}
-                      >
-                        {recipe.name}
-                      </button>
-                    ))}
+                    >
+                      {recipe.name}
+                    </button>
+                  ))}
               </div>
             )}
           </div>
@@ -526,26 +533,25 @@ export default function HomePage() {
       {/* 3. BOTTOM SECTION (Copilot & Waste) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-[280px]">
         {/* LEFT: TACO TALK */}
-        <div className="glass-card rounded-xl p-5 flex flex-col relative">
-          <div className="flex items-center gap-2 mb-2 text-warning">
+        <div className="glass-card rounded-xl p-5 flex flex-col relative h-full min-h-0">
+          <div className="flex items-center gap-2 mb-2 text-warning shrink-0">
             <MessageSquare className="h-4 w-4" />
             <h2 className="font-bold text-sm tracking-wide">
               TacoTalk (AI Copilot)
             </h2>
           </div>
 
-          <div className="flex-1 overflow-y-auto space-y-3 mb-3 pr-1 text-sm">
+          <div className="flex-1 overflow-y-auto space-y-3 mb-3 pr-1 text-sm min-h-0">
             {chatMessages.map((msg, i) => (
               <div
                 key={i}
                 className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`max-w-[85%] rounded-lg px-3 py-2 ${
-                    msg.role === "user"
-                      ? "bg-primary/20 text-primary-foreground border border-primary/20"
-                      : "bg-secondary text-muted-foreground"
-                  } prose prose-sm prose-invert max-w-none break-words`}
+                  className={`max-w-[85%] rounded-lg px-3 py-2 ${msg.role === "user"
+                    ? "bg-primary/20 text-primary-foreground border border-primary/20"
+                    : "bg-secondary text-muted-foreground"
+                    } prose prose-sm prose-invert max-w-none break-words`}
                 >
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>
                     {msg.text}
@@ -553,6 +559,7 @@ export default function HomePage() {
                 </div>
               </div>
             ))}
+            <div ref={messagesEndRef} />
           </div>
 
           <div className="mt-auto">
@@ -562,7 +569,7 @@ export default function HomePage() {
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleChat()}
-                placeholder="Ask about orders, waste, trends..."
+                placeholder="Ask Taco Talk..."
                 className="flex-1 rounded-md border border-primary/20 bg-secondary px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none"
               />
               <button
@@ -599,8 +606,8 @@ export default function HomePage() {
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {bottomThree.length > 0 &&
-                  bottomThree[0]?.avgSales !== undefined &&
-                  bottomThree[0]?.margin !== undefined
+                    bottomThree[0]?.avgSales !== undefined &&
+                    bottomThree[0]?.margin !== undefined
                     ? `Only ${bottomThree[0].avgSales} sold/day with ${bottomThree[0].margin}% margin`
                     : "No data available"}
                 </p>

@@ -1,63 +1,80 @@
 "use server";
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { getIngredients, getRecipes } from "@/lib/data";
+import { ingredients, recipes } from "@/lib/data";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 export async function chatWithGemini(userMessage: string) {
     try {
-        // Fetch current data from Supabase
-        const [ingredients, recipes] = await Promise.all([
-            getIngredients(),
-            getRecipes(),
-        ]);
+        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-        const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+        // 1. DATA PROCESSING (The "Database Pull")
+        // We convert your raw data objects into a clear text format the AI can read.
 
-        // 1. Prepare Inventory Data
-        const inventoryContext = ingredients.map(i =>
-            `- ${i.name} (${i.id}): ${i.onHand} ${i.unit} in stock. Cost: $${i.costPerUnit}/${i.unit}. Vendor: ${i.vendor}.`
-        ).join("\n");
+        // --- INVENTORY DATABASE ---
+        const inventoryDB = ingredients.map(i => {
+            // Calculate how many days of stock we have left based on recent usage
+            const avgUsage = i.dailyUsage.reduce((a, b) => a + b, 0) / i.dailyUsage.length || 1;
+            const daysStock = (i.onHand / avgUsage).toFixed(1);
 
-        // 2. Prepare Recipe Data
-        const recipeContext = recipes.map(r => {
-            // Calculate average sales if available, else default to 0
-            const avgSales = r.dailySales ? Math.round(r.dailySales.reduce((a, b) => a + b, 0) / r.dailySales.length) : 0;
-            return `- ${r.name} ($${r.sellPrice}): Avg Sales ${avgSales}/day. Ingredients: ${r.ingredients.map(i => `${i.qty} ${i.unit} ${i.ingredientId}`).join(", ")}`;
-        }).join("\n");
+            return `ITEM: ${i.name} (ID: ${i.id})
+      - Stock: ${i.onHand} ${i.unit}
+      - Cost: $${i.costPerUnit}/${i.unit}
+      - Vendor: ${i.vendor}
+      - Expiry: ${i.expiryDate}
+      - Usage: ~${avgUsage.toFixed(1)} ${i.unit}/day
+      - Days Left: ${daysStock} days`;
+        }).join("\n\n");
 
-        // 3. The System Prompt
+        // --- RECIPE DATABASE ---
+        const recipeDB = recipes.map(r => {
+            // Calculate sales velocity
+            const avgSales = r.dailySales.reduce((a, b) => a + b, 0) / r.dailySales.length || 0;
+
+            // Format the list of ingredients for this recipe
+            const ingredientList = r.ingredients.map(ing =>
+                `${ing.qty} ${ing.unit} of ${ing.ingredientId}`
+            ).join(", ");
+
+            return `DISH: ${r.name}
+      - Price: $${r.sellPrice}
+      - Avg Sales: ${avgSales.toFixed(0)}/day
+      - Recipe: ${ingredientList}`;
+        }).join("\n\n");
+
+        // 2. THE ANALYST PROMPT
         const systemPrompt = `
-      You are "Taco Talk", the inventory management assistant for a restaurant.
-      
-      [CURRENT INVENTORY]
-      ${inventoryContext}
+      You are "Taco Talk", the AI Manager for a restaurant in Athens, GA.
+      You have direct access to the live inventory database below.
 
-      [RECIPES & SALES]
-      ${recipeContext}
+      === INVENTORY DATABASE ===
+      ${inventoryDB}
 
-      [LOCAL CONTEXT: ATHENS, GA]
-      - University of Georgia (UGA) football games cause huge spikes in traffic.
-      - Rainy weather increases delivery orders; sunny weather increases patio dining.
+      === RECIPE DATABASE ===
+      ${recipeDB}
 
-      [YOUR GOAL]
-      - Answer questions about costs, stock levels, and recipes.
-      - If asked "How many tacos can I make?", check the ingredients for that taco and the current stock levels.
+      === VENDOR LIST ===
+      Sherwood Meats, Friar Tuck Dairy, Greenwood Farms, Sherwood Provisions, Greenwood Bakery.
+
+      === INSTRUCTIONS ===
+      1. **Be Precise:** When asked about stock, cite the exact numbers from the database above.
+      2. **Do Math:** - If asked "How many Burritos can I make?", find the "Burrito" recipe, check its ingredients (e.g., Beef), and divide the Beef Stock by the Beef per Burrito.
+         - If asked "How much to buy X?", multiply quantity by Cost per Unit.
+      3. **Local Context:**
+         - We are in Athens, GA. UGA Football games (Saturdays) mean double traffic.
+         - Rain = Delivery spikes. Sun = Patio spikes.
+      4. **Tone:** Professional, data-driven, but friendly.
+
+      User Question: ${userMessage}
     `;
 
-        const result = await model.generateContent({
-            contents: [
-                {
-                    role: "user",
-                    parts: [{ text: systemPrompt + `\n\nUser Question: ${userMessage}` }]
-                }
-            ]
-        });
-
+        // 3. GENERATE
+        const result = await model.generateContent(systemPrompt);
         return result.response.text();
+
     } catch (error) {
         console.error("Gemini Error:", error);
-        return "I'm having trouble reaching the inventory spirits. Please check your API key.";
+        return "I'm having trouble connecting to the database. Please try again.";
     }
 }
