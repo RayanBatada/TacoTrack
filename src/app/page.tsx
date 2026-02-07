@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { chatWithGemini } from "./actions";
 import {
   Package,
   UtensilsCrossed,
@@ -188,40 +191,35 @@ export default function HomePage() {
     }))
     .sort((a, b) => a.days - b.days);
 
-  const handleChat = () => {
+  const handleChat = async () => {
     if (!chatInput.trim()) return;
     const userMsg = chatInput.trim();
+
+    // Clear input and show user message immediately
     setChatInput("");
     setChatMessages((prev) => [...prev, { role: "user", text: userMsg }]);
 
-    // Simple bot response logic
-    setTimeout(() => {
-      let response = "Let me look into that for you.";
-      const q = userMsg.toLowerCase();
-      if (q.includes("low") || q.includes("stock") || q.includes("running")) {
-        const lowItems = stockItems.filter((i) => i.days <= 3);
-        response = `You have ${lowItems.length} items running low: ${lowItems
-          .slice(0, 3)
-          .map((i) => `${i.name} (${i.days}d)`)
-          .join(", ")}${lowItems.length > 3 ? " and more." : "."}`;
-      } else if (q.includes("top") || q.includes("best") || q.includes("seller")) {
-        response = `Your top sellers are: ${topThree.map((t) => `${t.name} (${t.avgSales}/day)`).join(", ")}.`;
-      } else if (q.includes("waste") || q.includes("loss")) {
-        response =
-          "Protein waste is your biggest loss category. Focus on FIFO rotation and smaller prep batches.";
-      } else if (q.includes("order") || q.includes("buy")) {
-        const critical = stockItems.filter((i) => i.days <= 1.5);
-        response = critical.length
-          ? `Urgent orders needed for: ${critical.map((i) => i.name).join(", ")}. Check the Orders tab for suggested quantities.`
-          : "All stock levels look manageable. Check Orders for recommended restocking.";
-      } else if (q.includes("cost") || q.includes("margin")) {
-        const avgCost = Math.round(
-          recipes.reduce((s, r) => s + foodCostPercent(r, ingredients), 0) / recipes.length
-        );
-        response = `Average food cost is ${avgCost}%. ${avgCost > 30 ? "That's above the 30% target — review high-cost recipes." : "You're within the 30% target."}`;
-      }
-      setChatMessages((prev) => [...prev, { role: "bot", text: response }]);
-    }, 600);
+    // Show a temporary "Thinking..." bubble
+    setChatMessages((prev) => [...prev, { role: "bot", text: "Consulting the inventory..." }]);
+
+    // Call the server action
+    try {
+      const response = await chatWithGemini(userMsg);
+
+      // Replace "Thinking..." with the real answer
+      setChatMessages((prev) => {
+        const history = [...prev];
+        history.pop(); // Remove the loading message
+        return [...history, { role: "bot", text: response }];
+      });
+    } catch (e) {
+      // Handle errors gracefully
+      setChatMessages((prev) => {
+        const history = [...prev];
+        history.pop();
+        return [...history, { role: "bot", text: "Error: Could not reach the AI." }];
+      });
+    }
   };
 
   return (
@@ -599,9 +597,11 @@ export default function HomePage() {
                   className={`max-w-[80%] rounded-xl px-3 py-2 text-sm ${msg.role === "user"
                     ? "bg-primary/20 text-white"
                     : "bg-secondary text-secondary-foreground"
-                    }`}
+                    } prose prose-sm prose-invert max-w-none break-words`}
                 >
-                  {msg.text}
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {msg.text}
+                  </ReactMarkdown>
                 </div>
               </div>
             ))}
