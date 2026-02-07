@@ -40,6 +40,8 @@ const tooltipStyle = {
 
 export default function HomePage() {
   const [chatInput, setChatInput] = useState("");
+  const [selectedIngredient, setSelectedIngredient] = useState<string | null>(null);
+  const [selectedDish, setSelectedDish] = useState<string | null>(null);
   const [chatMessages, setChatMessages] = useState<
     { role: "user" | "bot"; text: string }[]
   >([
@@ -82,10 +84,22 @@ export default function HomePage() {
     };
   });
 
-  const lastWeekIngUsage = ingredientTrendData
+  // Calculate chart data based on selection
+  const activeIngredientData = selectedIngredient
+    ? ingredients.find(i => i.id === selectedIngredient)?.dailyUsage.map((usage, i) => {
+      const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+      return {
+        day: dayNames[i],
+        usage: usage,
+        value: usage * (ingredients.find(ing => ing.id === selectedIngredient)?.costPerUnit || 0)
+      };
+    }) || ingredientTrendData
+    : ingredientTrendData;
+
+  const lastWeekIngUsage = activeIngredientData
     .slice(0, 7)
     .reduce((s, d) => s + d.usage, 0);
-  const thisWeekIngUsage = ingredientTrendData
+  const thisWeekIngUsage = activeIngredientData
     .slice(7, 14)
     .reduce((s, d) => s + d.usage, 0);
   const ingChange =
@@ -96,9 +110,32 @@ export default function HomePage() {
       : 0;
 
   // Dish sales trend data
-  const salesData = salesTrendData();
-  const lastWeekSales = salesData.slice(0, 7);
-  const thisWeekSales = salesData.slice(7, 14);
+  const salesData = salesTrendData(); // Aggregate
+
+  // Custom dish data if selected
+  const activeDishData = selectedDish
+    ? recipes.find(r => r.id === selectedDish)?.dailySales.map((sales, i) => {
+      const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+      const r = recipes.find(item => item.id === selectedDish);
+      return {
+        day: dayNames[i],
+        sales: sales,
+        revenue: Math.round(sales * (r?.sellPrice || 0))
+      };
+    }) || []
+    : salesData.map((d) => ({
+      day: d.day,
+      sales: d.sales,
+      revenue: Math.round(d.revenue),
+    }));
+
+  const lastWeekSales = selectedDish
+    ? activeDishData.slice(0, 7)
+    : salesData.slice(0, 7);
+  const thisWeekSales = selectedDish
+    ? activeDishData.slice(7, 14)
+    : salesData.slice(7, 14);
+
   const lastWeekTotal = lastWeekSales.reduce((s, d) => s + d.sales, 0);
   const thisWeekTotal = thisWeekSales.reduce((s, d) => s + d.sales, 0);
   const salesChange =
@@ -106,11 +143,7 @@ export default function HomePage() {
       ? Math.round(((thisWeekTotal - lastWeekTotal) / lastWeekTotal) * 100)
       : 0;
 
-  const dishTrendData = salesData.map((d, i) => ({
-    day: d.day,
-    sales: d.sales,
-    revenue: Math.round(d.revenue),
-  }));
+  const dishTrendData = activeDishData;
 
   // Top & bottom performing items
   const topSellers = topSellingItems();
@@ -192,12 +225,22 @@ export default function HomePage() {
             <div className="flex items-center gap-2">
               <Package className="h-4 w-4 text-primary" />
               <h2 className="text-sm font-semibold">Ingredient Usage</h2>
+              <select
+                className="ml-2 bg-secondary/50 border border-primary/20 rounded text-xs px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
+                value={selectedIngredient || ""}
+                onChange={(e) => setSelectedIngredient(e.target.value || null)}
+              >
+                <option value="">All Ingredients</option>
+                {ingredients.map(ing => (
+                  <option key={ing.id} value={ing.id}>{ing.name}</option>
+                ))}
+              </select>
             </div>
             <TrendBadge value={ingChange} />
           </div>
           <div className="h-52">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={ingredientTrendData}>
+              <AreaChart data={activeIngredientData}>
                 <defs>
                   <linearGradient id="ingGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#d946ef" stopOpacity={0.3} />
@@ -278,6 +321,16 @@ export default function HomePage() {
             <div className="flex items-center gap-2">
               <UtensilsCrossed className="h-4 w-4 text-primary" />
               <h2 className="text-sm font-semibold">Dish Sales</h2>
+              <select
+                className="ml-2 bg-secondary/50 border border-primary/20 rounded text-xs px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
+                value={selectedDish || ""}
+                onChange={(e) => setSelectedDish(e.target.value || null)}
+              >
+                <option value="">All Dishes</option>
+                {recipes.map(r => (
+                  <option key={r.id} value={r.id}>{r.name}</option>
+                ))}
+              </select>
             </div>
             <TrendBadge value={salesChange} />
           </div>
