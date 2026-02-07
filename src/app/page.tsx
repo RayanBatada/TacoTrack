@@ -112,6 +112,7 @@ export default function HomePage() {
     generateForecast,
   } = useForecast();
   const [showForecast, setShowForecast] = useState(false);
+  const [generating, setGenerating] = useState(false);
 
   // REFERENCE FOR AUTO-SCROLLING CHAT
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -145,6 +146,22 @@ export default function HomePage() {
 
         if (ing.length > 0) setSelectedIngredient(ing[0].id);
         if (rec.length > 0) setSelectedDish(rec[0].id);
+
+        // ⬇️ ADD THIS: Auto-save inventory forecast to database
+        fetch("/api/inventory-forecast", { method: "POST" })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.success) {
+              console.log("✅ Inventory forecast saved:", {
+                total: data.totalForecasts,
+                critical: data.critical,
+                warning: data.warning,
+              });
+            }
+          })
+          .catch((err) =>
+            console.error("Failed to save inventory forecast:", err),
+          );
       } catch (error) {
         console.error("Error loading data:", error);
       } finally {
@@ -376,6 +393,29 @@ export default function HomePage() {
     }
     setShowForecast(false);
     setIsDropdownOpen(false);
+  };
+
+  const handleGenerateForecasts = async () => {
+    setGenerating(true);
+    try {
+      const response = await fetch("/api/generate-forecasts", {
+        method: "POST",
+      });
+      const data = await response.json();
+
+      if (data.success) {
+        alert(
+          `✅ Success! Generated ${data.totalForecasts} forecasts for ${data.recipesProcessed} recipes`,
+        );
+      } else {
+        alert(`❌ Error: ${data.error}`);
+      }
+    } catch (error) {
+      console.error("Generation error:", error);
+      alert("❌ Failed to generate forecasts. Check console for details.");
+    } finally {
+      setGenerating(false);
+    }
   };
 
   // ===========================================================================
