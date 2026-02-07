@@ -1,0 +1,4 @@
+npm install react-markdown
+npm install remark-gfm
+npm install @google/generative-ai --legacy-peer-deps
+npm install @supabase/supabase-js
