@@ -11,80 +11,56 @@ import {
   ChevronRight,
   Sparkles,
   TrendingUp,
+  Trash2,
 } from "lucide-react";
-
-type Recipe = {
-  id: string;
-  name: string;
-  description: string;
-  prepTime: number; // minutes
-  servings: number;
-  difficulty: "easy" | "medium" | "hard";
-  category: string;
-  popularity: number; // sales count
-  imageUrl?: string;
-};
-
-// Mock data - replace with your actual data
-const mockRecipes: Recipe[] = [
-  {
-    id: "1",
-    name: "Classic Margherita Pizza",
-    description: "Fresh mozzarella, basil, and San Marzano tomatoes",
-    prepTime: 25,
-    servings: 4,
-    difficulty: "easy",
-    category: "pizza",
-    popularity: 156,
-  },
-  {
-    id: "2",
-    name: "Truffle Mushroom Risotto",
-    description: "Creamy arborio rice with wild mushrooms and truffle oil",
-    prepTime: 45,
-    servings: 2,
-    difficulty: "hard",
-    category: "pasta",
-    popularity: 89,
-  },
-  {
-    id: "3",
-    name: "Caesar Salad",
-    description: "Crisp romaine, parmesan, croutons, house-made dressing",
-    prepTime: 15,
-    servings: 4,
-    difficulty: "easy",
-    category: "salad",
-    popularity: 134,
-  },
-  {
-    id: "4",
-    name: "Grilled Salmon",
-    description: "Atlantic salmon with lemon butter and seasonal vegetables",
-    prepTime: 30,
-    servings: 2,
-    difficulty: "medium",
-    category: "seafood",
-    popularity: 98,
-  },
-];
+import { Recipe, recipes as initialRecipes, ingredients } from "@/lib/data";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 
 type SortMode = "popularity" | "name" | "time";
 
 export default function RecipesPage() {
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SortMode>("popularity");
-  const [recipes] = useState<Recipe[]>(mockRecipes);
+  const [recipes, setRecipes] = useState<Recipe[]>(initialRecipes);
+
+  // Form State
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [newRecipeName, setNewRecipeName] = useState("");
+  const [newRecipeDesc, setNewRecipeDesc] = useState("");
+  const [newRecipePrep, setNewRecipePrep] = useState("");
+  const [newRecipeServings, setNewRecipeServings] = useState("");
+  const [newRecipeDifficulty, setNewRecipeDifficulty] = useState<"easy" | "medium" | "hard">("medium");
+  const [newRecipeCategory, setNewRecipeCategory] = useState("Specialties");
+  const [newRecipeIngredients, setNewRecipeIngredients] = useState<{ id: string; qty: string }[]>([]);
 
   const filteredRecipes = recipes
     .filter(
       (r) =>
         r.name.toLowerCase().includes(search.toLowerCase()) ||
-        r.description.toLowerCase().includes(search.toLowerCase()),
+        (r.description || "").toLowerCase().includes(search.toLowerCase()),
     )
     .sort((a, b) => {
-      if (sort === "popularity") return b.popularity - a.popularity;
-      if (sort === "time") return a.prepTime - b.prepTime;
+      if (sort === "popularity") return (b.popularity || 0) - (a.popularity || 0);
+      if (sort === "time") return (a.prepTime || 0) - (b.prepTime || 0);
       return a.name.localeCompare(b.name);
     });
 
@@ -92,6 +68,55 @@ export default function RecipesPage() {
     easy: "text-success bg-success/10",
     medium: "text-warning bg-warning/10",
     hard: "text-destructive bg-destructive/10",
+  };
+
+  const handleAddIngredient = () => {
+    setNewRecipeIngredients([...newRecipeIngredients, { id: "", qty: "" }]);
+  };
+
+  const updateIngredient = (index: number, field: "id" | "qty", value: string) => {
+    const updated = [...newRecipeIngredients];
+    updated[index] = { ...updated[index], [field]: value };
+    setNewRecipeIngredients(updated);
+  };
+
+  const removeIngredient = (index: number) => {
+    setNewRecipeIngredients(newRecipeIngredients.filter((_, i) => i !== index));
+  };
+
+  const handleCreateRecipe = () => {
+    if (!newRecipeName) return;
+
+    const newRecipe: Recipe = {
+      id: `new-${Date.now()}`,
+      name: newRecipeName,
+      description: newRecipeDesc || "A delicious new creation.",
+      category: newRecipeCategory,
+      prepTime: parseInt(newRecipePrep) || 15,
+      servings: parseInt(newRecipeServings) || 2,
+      difficulty: newRecipeDifficulty,
+      popularity: 0,
+      sellPrice: 0, // Would allow setting this too, but skipping for brevity
+      yieldPercent: 100,
+      dailySales: [], // No history yet
+      ingredients: newRecipeIngredients
+        .filter((i) => i.id && i.qty)
+        .map((i) => ({
+          ingredientId: i.id,
+          qty: parseFloat(i.qty) || 0,
+          unit: ingredients.find((ing) => ing.id === i.id)?.unit || "units",
+        })),
+    };
+
+    setRecipes([newRecipe, ...recipes]);
+    setIsDialogOpen(false);
+
+    // Reset form
+    setNewRecipeName("");
+    setNewRecipeDesc("");
+    setNewRecipePrep("");
+    setNewRecipeServings("");
+    setNewRecipeIngredients([]);
   };
 
   return (
@@ -107,10 +132,157 @@ export default function RecipesPage() {
             {recipes.length} recipes in your collection
           </p>
         </div>
-        <button className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:shadow-primary/30 active:scale-[0.98]">
-          <Plus className="h-4 w-4" />
-          Add Recipe
-        </button>
+
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="rounded-xl shadow-lg shadow-primary/20">
+              <Plus className="mr-2 h-4 w-4" />
+              Add Recipe
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl bg-secondary/95 backdrop-blur-xl border-primary/20">
+            <DialogHeader>
+              <DialogTitle>Create New Recipe</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Recipe Name</Label>
+                  <Input
+                    placeholder="e.g. Mystic Tacos"
+                    value={newRecipeName}
+                    onChange={(e) => setNewRecipeName(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Category</Label>
+                  <Select value={newRecipeCategory} onValueChange={setNewRecipeCategory}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Tacos">Tacos</SelectItem>
+                      <SelectItem value="Burritos">Burritos</SelectItem>
+                      <SelectItem value="Specialties">Specialties</SelectItem>
+                      <SelectItem value="Sides">Sides</SelectItem>
+                      <SelectItem value="Beverages">Beverages</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Description</Label>
+                <Input
+                  placeholder="Short description of the dish"
+                  value={newRecipeDesc}
+                  onChange={(e) => setNewRecipeDesc(e.target.value)}
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>Prep Time (min)</Label>
+                  <Input
+                    type="number"
+                    placeholder="15"
+                    value={newRecipePrep}
+                    onChange={(e) => setNewRecipePrep(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Servings</Label>
+                  <Input
+                    type="number"
+                    placeholder="2"
+                    value={newRecipeServings}
+                    onChange={(e) => setNewRecipeServings(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Difficulty</Label>
+                  <Select
+                    value={newRecipeDifficulty}
+                    onValueChange={(v: any) => setNewRecipeDifficulty(v)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="easy">Easy</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="hard">Hard</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <Separator className="my-2 bg-primary/10" />
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label>Ingredients</Label>
+                  <Button variant="ghost" size="sm" onClick={handleAddIngredient} className="text-xs">
+                    <Plus className="mr-1 h-3 w-3" /> Add Ingredient
+                  </Button>
+                </div>
+                <ScrollArea className="h-[200px] rounded-md border border-primary/10 bg-black/20 p-2">
+                  <div className="space-y-2">
+                    {newRecipeIngredients.map((item, i) => (
+                      <div key={i} className="flex gap-2 items-end">
+                        <div className="flex-1 space-y-1">
+                          {i === 0 && <span className="text-[10px] text-muted-foreground">Ingredient</span>}
+                          <Select
+                            value={item.id}
+                            onValueChange={(val) => updateIngredient(i, "id", val)}
+                          >
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue placeholder="Select..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {ingredients.map((ing) => (
+                                <SelectItem key={ing.id} value={ing.id}>
+                                  {ing.name} ({ing.unit})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="w-20 space-y-1">
+                          {i === 0 && <span className="text-[10px] text-muted-foreground">Qty</span>}
+                          <Input
+                            className="h-8 text-xs"
+                            type="number"
+                            placeholder="1"
+                            value={item.qty}
+                            onChange={(e) => updateIngredient(i, "qty", e.target.value)}
+                          />
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                          onClick={() => removeIngredient(i)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    {newRecipeIngredients.length === 0 && (
+                      <p className="text-center text-xs text-muted-foreground py-8">
+                        No ingredients added yet.
+                      </p>
+                    )}
+                  </div>
+                </ScrollArea>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+              <Button onClick={handleCreateRecipe}>Create Recipe</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Stats cards */}
@@ -122,7 +294,7 @@ export default function RecipesPage() {
           </div>
           <p className="text-lg font-bold">
             {recipes.reduce(
-              (max, r) => (r.popularity > max ? r.popularity : max),
+              (max, r) => ((r.popularity || 0) > max ? (r.popularity || 0) : max),
               0,
             )}{" "}
             orders
@@ -135,7 +307,7 @@ export default function RecipesPage() {
           </div>
           <p className="text-lg font-bold">
             {Math.round(
-              recipes.reduce((sum, r) => sum + r.prepTime, 0) / recipes.length,
+              recipes.reduce((sum, r) => sum + (r.prepTime || 0), 0) / recipes.length,
             )}{" "}
             min
           </p>
@@ -175,11 +347,10 @@ export default function RecipesPage() {
           <button
             key={s.value}
             onClick={() => setSort(s.value)}
-            className={`flex-1 rounded-md py-1.5 text-xs font-medium transition-all ${
-              sort === s.value
+            className={`flex-1 rounded-md py-1.5 text-xs font-medium transition-all ${sort === s.value
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
-            }`}
+              }`}
           >
             {s.label}
           </button>
@@ -206,33 +377,36 @@ export default function RecipesPage() {
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold truncate">{recipe.name}</p>
               <p className="mt-0.5 text-xs text-muted-foreground truncate">
-                {recipe.description}
+                {recipe.description || "No description available"}
               </p>
               <div className="mt-1.5 flex items-center gap-2">
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Clock className="h-3 w-3" />
-                  {recipe.prepTime}m
+                  {recipe.prepTime || 15}m
                 </div>
                 <span className="text-muted-foreground">·</span>
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Users className="h-3 w-3" />
-                  {recipe.servings}
+                  {recipe.servings || 2}
                 </div>
-                <span className="text-muted-foreground">·</span>
-                <span
-                  className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                    difficultyColors[recipe.difficulty]
-                  }`}
-                >
-                  {recipe.difficulty}
-                </span>
+                {recipe.difficulty && (
+                  <>
+                    <span className="text-muted-foreground">·</span>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${difficultyColors[recipe.difficulty]
+                        }`}
+                    >
+                      {recipe.difficulty}
+                    </span>
+                  </>
+                )}
               </div>
             </div>
 
             <div className="text-right shrink-0">
               <div className="flex items-center gap-1 text-xs font-semibold text-primary">
                 <TrendingUp className="h-3 w-3" />
-                {recipe.popularity}
+                {recipe.popularity || 0}
               </div>
               <p className="text-[10px] text-muted-foreground">orders</p>
             </div>
