@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Package, ShoppingCart, TrendingUp, ChefHat } from "lucide-react";
+import { Home, Package, ShoppingCart, TrendingUp, ChefHat, Sparkles } from "lucide-react";
 
 export function BottomNav() {
   const pathname = usePathname();
@@ -14,6 +14,7 @@ export function BottomNav() {
     { href: "/recipes", label: "Recipes", icon: ChefHat },
     { href: "/orders", label: "Orders", icon: ShoppingCart },
     { href: "/analytics", label: "Analytics", icon: TrendingUp },
+    { href: "/wrapped", label: "Wrapped", icon: Sparkles }
   ];
 
   return (
