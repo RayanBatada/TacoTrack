@@ -1,6 +1,13 @@
 "use client";
 
-import { getRecipes, getIngredients, getWasteEntries, type Recipe, type Ingredient, type WasteEntry } from "@/lib/data-db";
+import {
+  getRecipes,
+  getIngredients,
+  getWasteEntries,
+  type Recipe,
+  type Ingredient,
+  type WasteEntry,
+} from "@/lib/data-db";
 import { useState, useEffect } from "react";
 import { ArrowRight, Download, Share2, ChevronDown } from "lucide-react";
 
@@ -22,7 +29,7 @@ interface WrappedStats {
 function calculateStats(
   recipes: Recipe[],
   ingredients: Ingredient[],
-  wasteEntries: WasteEntry[]
+  wasteEntries: WasteEntry[],
 ): WrappedStats {
   // Calculate total dishes served (sum of all sales from recipes)
   const totalDishesServed = recipes.reduce((sum, recipe) => {
@@ -36,7 +43,7 @@ function calculateStats(
   }));
 
   const topDishData = dishSalesMap.reduce((max, curr) =>
-    curr.totalSales > max.totalSales ? curr : max
+    curr.totalSales > max.totalSales ? curr : max,
   );
 
   // Top 3 dishes
@@ -57,11 +64,19 @@ function calculateStats(
   const salesByDay = Array(14)
     .fill(0)
     .map((_, dayIndex) =>
-      recipes.reduce((sum, recipe) => sum + recipe.dailySales[dayIndex], 0)
+      recipes.reduce((sum, recipe) => sum + recipe.dailySales[dayIndex], 0),
     );
   const bestDayIndex = salesByDay.indexOf(Math.max(...salesByDay));
   const bestDayRevenue = salesByDay[bestDayIndex];
-  const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+  const daysOfWeek = [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+  ];
   const bestDay = daysOfWeek[bestDayIndex % 7];
 
   // Most used ingredient
@@ -69,23 +84,36 @@ function calculateStats(
   recipes.forEach((recipe) => {
     recipe.ingredients.forEach((ri) => {
       ingredientUsageMap[ri.ingredientId] =
-        (ingredientUsageMap[ri.ingredientId] || 0) + recipe.dailySales.reduce((a, b) => a + b, 0);
+        (ingredientUsageMap[ri.ingredientId] || 0) +
+        recipe.dailySales.reduce((a, b) => a + b, 0);
     });
   });
 
-  const mostUsedId = Object.entries(ingredientUsageMap).sort((a, b) => b[1] - a[1])[0][0];
-  const mostUsedIngredient = ingredients.find((i) => i.id === mostUsedId) || ingredients[0];
+  const mostUsedId = Object.entries(ingredientUsageMap).sort(
+    (a, b) => b[1] - a[1],
+  )[0][0];
+  const mostUsedIngredient =
+    ingredients.find((i) => i.id === mostUsedId) || ingredients[0];
 
+  // Trending up (recipes with rising sales)
   // Trending up (recipes with rising sales)
   const trendingUp = recipes
     .filter((r) => {
-      const firstWeekAvg = r.dailySales.slice(0, 7).reduce((a, b) => a + b) / 7;
-      const secondWeekAvg = r.dailySales.slice(7).reduce((a, b) => a + b) / 7;
+      const firstWeekAvg =
+        r.dailySales.slice(0, 7).reduce((a, b) => a + b, 0) / 7;
+      const secondWeekAvg =
+        r.dailySales.slice(7).reduce((a, b) => a + b, 0) / 7;
       return secondWeekAvg > firstWeekAvg * 1.15;
     })
     .sort((a, b) => {
-      const aGrowth = b.dailySales.slice(7).reduce((a, c) => a + c) / b.dailySales.slice(0, 7).reduce((a, c) => a + c);
-      const bGrowth = a.dailySales.slice(7).reduce((a, c) => a + c) / a.dailySales.slice(0, 7).reduce((a, c) => a + c);
+      const aFirstWeek = a.dailySales.slice(0, 7).reduce((a, c) => a + c, 0);
+      const aSecondWeek = a.dailySales.slice(7).reduce((a, c) => a + c, 0);
+      const bFirstWeek = b.dailySales.slice(0, 7).reduce((a, c) => a + c, 0);
+      const bSecondWeek = b.dailySales.slice(7).reduce((a, c) => a + c, 0);
+
+      const aGrowth = aFirstWeek > 0 ? aSecondWeek / aFirstWeek : 0;
+      const bGrowth = bFirstWeek > 0 ? bSecondWeek / bFirstWeek : 0;
+
       return bGrowth - aGrowth;
     })
     .slice(0, 3);
@@ -101,7 +129,7 @@ function calculateStats(
         return s + (ing ? ri.qty * ing.costPerUnit : 0);
       }, 0);
       return sum + (foodCost / dish.sellPrice) * 100;
-    }, 0) / topThreeDishes.length
+    }, 0) / topThreeDishes.length,
   );
 
   return {
@@ -137,7 +165,7 @@ export default function WrappedPage() {
         console.error("Error loading wrapped stats:", error);
       }
     };
-    
+
     loadStats();
   }, []);
 
@@ -173,7 +201,9 @@ export default function WrappedPage() {
               {stats.totalDishesServed.toLocaleString()}
             </h2>
             <p className="text-2xl text-gray-200">magical dishes</p>
-            <p className="text-sm text-gray-400 mt-6">That's a lot of happy customers! 🎉</p>
+            <p className="text-sm text-gray-400 mt-6">
+              That's a lot of happy customers! 🎉
+            </p>
           </div>
         );
       case 1:
@@ -184,8 +214,17 @@ export default function WrappedPage() {
             <h2 className="text-5xl font-black mb-6 bg-gradient-to-r from-orange-300 to-red-300 bg-clip-text text-transparent">
               {stats.topDish.name}
             </h2>
-            <p className="text-3xl text-orange-200 font-bold">{stats.topDishSales} sold</p>
-            <p className="text-sm text-gray-400 mt-6">${(stats.topDishSales * stats.topDish.sellPrice).toLocaleString('en-US', { maximumFractionDigits: 0 })} in revenue</p>
+            <p className="text-3xl text-orange-200 font-bold">
+              {stats.topDishSales} sold
+            </p>
+            <p className="text-sm text-gray-400 mt-6">
+              $
+              {(stats.topDishSales * stats.topDish.sellPrice).toLocaleString(
+                "en-US",
+                { maximumFractionDigits: 0 },
+              )}{" "}
+              in revenue
+            </p>
           </div>
         );
       case 2:
@@ -193,9 +232,14 @@ export default function WrappedPage() {
           <div className="flex flex-col items-center justify-center h-full w-full text-center px-6">
             <p className="text-gray-300 mb-4 text-lg">Total revenue</p>
             <h2 className="text-7xl font-black mb-4 bg-gradient-to-r from-emerald-300 to-green-300 bg-clip-text text-transparent">
-              ${stats.totalRevenue.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+              $
+              {stats.totalRevenue.toLocaleString("en-US", {
+                maximumFractionDigits: 0,
+              })}
             </h2>
-            <p className="text-gray-300 mt-6 text-lg">💰 That's some serious taco business</p>
+            <p className="text-gray-300 mt-6 text-lg">
+              💰 That's some serious taco business
+            </p>
           </div>
         );
       case 3:
@@ -205,8 +249,12 @@ export default function WrappedPage() {
             <h2 className="text-6xl font-black mb-6 bg-gradient-to-r from-yellow-300 to-amber-300 bg-clip-text text-transparent">
               {stats.bestDay}
             </h2>
-            <p className="text-3xl text-yellow-200 font-bold">{stats.bestDayRevenue} dishes</p>
-            <p className="text-sm text-gray-400 mt-6">📈 People love Tacos on {stats.bestDay}s</p>
+            <p className="text-3xl text-yellow-200 font-bold">
+              {stats.bestDayRevenue} dishes
+            </p>
+            <p className="text-sm text-gray-400 mt-6">
+              📈 People love Tacos on {stats.bestDay}s
+            </p>
           </div>
         );
       case 4:
@@ -215,10 +263,22 @@ export default function WrappedPage() {
             <p className="text-gray-300 mb-8 text-lg">Your top 3 bestsellers</p>
             <div className="space-y-4 w-full">
               {stats.topThreeDishes.map((dish, idx) => (
-                <div key={dish.id} className="bg-black/50 rounded-xl p-4 border border-indigo-500/30 flex flex-col items-center text-center">
-                  <div className="text-3xl font-black text-indigo-300 mb-2">{idx + 1}</div>
-                  <p className="font-bold text-lg text-indigo-200">{dish.name}</p>
-                  <p className="text-sm text-gray-400">{dish.sales} sold • ${(dish.sales * dish.sellPrice).toLocaleString('en-US', { maximumFractionDigits: 0 })}</p>
+                <div
+                  key={dish.id}
+                  className="bg-black/50 rounded-xl p-4 border border-indigo-500/30 flex flex-col items-center text-center"
+                >
+                  <div className="text-3xl font-black text-indigo-300 mb-2">
+                    {idx + 1}
+                  </div>
+                  <p className="font-bold text-lg text-indigo-200">
+                    {dish.name}
+                  </p>
+                  <p className="text-sm text-gray-400">
+                    {dish.sales} sold • $
+                    {(dish.sales * dish.sellPrice).toLocaleString("en-US", {
+                      maximumFractionDigits: 0,
+                    })}
+                  </p>
                 </div>
               ))}
             </div>
@@ -231,13 +291,22 @@ export default function WrappedPage() {
             <div className="space-y-4 w-full">
               {stats.trendingUp.length > 0 ? (
                 stats.trendingUp.map((dish) => (
-                  <div key={dish.id} className="bg-black/50 rounded-xl p-4 border border-pink-500/30 text-center">
-                    <p className="font-bold text-lg text-pink-200">{dish.name}</p>
-                    <p className="text-sm text-gray-400 mt-1">Growing in popularity</p>
+                  <div
+                    key={dish.id}
+                    className="bg-black/50 rounded-xl p-4 border border-pink-500/30 text-center"
+                  >
+                    <p className="font-bold text-lg text-pink-200">
+                      {dish.name}
+                    </p>
+                    <p className="text-sm text-gray-400 mt-1">
+                      Growing in popularity
+                    </p>
                   </div>
                 ))
               ) : (
-                <p className="text-gray-400">Keep experimenting with new items!</p>
+                <p className="text-gray-400">
+                  Keep experimenting with new items!
+                </p>
               )}
             </div>
           </div>
@@ -245,12 +314,16 @@ export default function WrappedPage() {
       case 6:
         return (
           <div className="flex flex-col items-center justify-center h-full w-full text-center px-6">
-            <p className="text-gray-300 mb-6 text-lg">Most essential ingredient</p>
+            <p className="text-gray-300 mb-6 text-lg">
+              Most essential ingredient
+            </p>
             <div className="mb-6 text-6xl">🥩</div>
             <h2 className="text-5xl font-black mb-6 bg-gradient-to-r from-lime-300 to-green-300 bg-clip-text text-transparent">
               {stats.mostUsedIngredient.name}
             </h2>
-            <p className="text-gray-300 text-sm">Powers your kitchen magic ✨</p>
+            <p className="text-gray-300 text-sm">
+              Powers your kitchen magic ✨
+            </p>
           </div>
         );
       case 7:
@@ -258,9 +331,14 @@ export default function WrappedPage() {
           <div className="flex flex-col items-center justify-center h-full w-full text-center px-6">
             <p className="text-gray-300 mb-4 text-lg">Waste this month</p>
             <h2 className="text-6xl font-black mb-4 bg-gradient-to-r from-red-300 to-orange-300 bg-clip-text text-transparent">
-              ${stats.totalWaste.toLocaleString('en-US', { maximumFractionDigits: 2 })}
+              $
+              {stats.totalWaste.toLocaleString("en-US", {
+                maximumFractionDigits: 2,
+              })}
             </h2>
-            <p className="text-gray-300 text-sm">Opportunity to reduce by {stats.wasteReduction}%</p>
+            <p className="text-gray-300 text-sm">
+              Opportunity to reduce by {stats.wasteReduction}%
+            </p>
           </div>
         );
       case 8:
@@ -270,7 +348,9 @@ export default function WrappedPage() {
             <h2 className="text-5xl font-black mb-6 bg-gradient-to-r from-purple-300 to-pink-300 bg-clip-text text-transparent">
               Great job!
             </h2>
-            <p className="text-gray-300 text-lg mb-8">You're crushing it in the restaurant game.</p>
+            <p className="text-gray-300 text-lg mb-8">
+              You're crushing it in the restaurant game.
+            </p>
             <div className="flex gap-4 justify-center">
               <button className="px-6 py-2 bg-purple-600 hover:bg-purple-700 rounded-full font-bold text-white flex items-center gap-2 transition-all">
                 <Share2 className="h-4 w-4" />
@@ -306,7 +386,9 @@ export default function WrappedPage() {
   return (
     <div className="fixed inset-0 left-56 bg-black overflow-hidden">
       {/* Current slide */}
-      <div className={`w-full h-screen ${getBgColor()} transition-all duration-500 flex`}>
+      <div
+        className={`w-full h-screen ${getBgColor()} transition-all duration-500 flex`}
+      >
         <Slide slide={currentSlide} />
       </div>
 
