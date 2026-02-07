@@ -162,16 +162,41 @@ export function weeklyUsageData(ingredient: Ingredient): { day: string; usage: n
 }
 
 export function salesTrendData(recipes: Recipe[]): { day: string; sales: number; revenue: number; lastWeek: number }[] {
-  const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "Mon2", "Tue2", "Wed2", "Thu2", "Fri2", "Sat2", "Sun2"];
-  return dayLabels.map((label, i) => ({
-    day: label.replace("2", ""),
-    sales: recipes.reduce((sum, r) => sum + (r.dailySales[i] || 0), 0),
-    revenue: recipes.reduce((sum, r) => sum + (r.dailySales[i] || 0) * r.sellPrice, 0),
-    lastWeek:
-      i < 7
-        ? recipes.reduce((sum, r) => sum + (r.dailySales[i] || 0), 0)
-        : recipes.reduce((sum, r) => sum + (r.dailySales[i - 7] || 0), 0),
-  }));
+  const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  // dailySales array is [Sun, Mon, Tue, Wed, Thu, Fri, Sat] (indices 0-6)
+  // We need to remap to calendar order and duplicate for 2 weeks
+  
+  const remappedDailySales = recipes.map(r => {
+    // Remap from [Sun, Mon, Tue, Wed, Thu, Fri, Sat] to [Mon, Tue, Wed, Thu, Fri, Sat, Sun]
+    const original = r.dailySales;
+    return [
+      original[1] || 0, // Mon
+      original[2] || 0, // Tue
+      original[3] || 0, // Wed
+      original[4] || 0, // Thu
+      original[5] || 0, // Fri
+      original[6] || 0, // Sat
+      original[0] || 0, // Sun
+    ];
+  });
+
+  // Generate 14 days (2 weeks) - assume same pattern repeats
+  return dayLabels.flatMap((label, dayOfWeek) => {
+    // Generate this day for last week and this week
+    return [0, 1].map((weekOffset) => {
+      return {
+        day: label,
+        sales: remappedDailySales.reduce((sum, weekData) => sum + weekData[dayOfWeek], 0),
+        revenue: remappedDailySales.reduce(
+          (sum, weekData, recipeIdx) => sum + weekData[dayOfWeek] * recipes[recipeIdx].sellPrice,
+          0
+        ),
+        lastWeek: weekOffset === 0 
+          ? remappedDailySales.reduce((sum, weekData) => sum + weekData[dayOfWeek], 0)
+          : remappedDailySales.reduce((sum, weekData) => sum + weekData[dayOfWeek], 0),
+      };
+    });
+  });
 }
 
 export function wasteByCategory(wasteEntries: WasteEntry[], ingredients: Ingredient[]): { category: string; cost: number }[] {
@@ -220,4 +245,12 @@ export function dishesWeCanMake(recipes: Recipe[], ingredients: Ingredient[]): {
       limitingIngredient,
     };
   });
+}
+
+export function formatForecastInsights(forecasts: any[]): string {
+  if (!forecasts.length) return "No forecast data available yet.";
+  
+  const sorted = forecasts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5);
+  const insights = sorted.map(f => `${f.dish_name}: ${f.predicted_quantity} units (${f.confidence})`).join(" | ");
+  return insights;
 }

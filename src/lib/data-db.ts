@@ -105,14 +105,18 @@ export async function getRecipes(): Promise<Recipe[]> {
 
 // Calculate daily sales for a recipe from sales_events
 async function calculateDailySalesForRecipe(recipeId: string): Promise<number[]> {
-  const fourWeeksAgo = new Date();
-  fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
+  const ninetyDaysAgo = new Date();
+  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
-  const { data: salesData } = await supabase
+  const { data: salesData, error } = await supabase
     .from('sales_events')
     .select('quantity, day_of_week, sale_timestamp')
     .eq('recipe_id', recipeId)
-    .gte('sale_timestamp', fourWeeksAgo.toISOString());
+    .gte('sale_timestamp', ninetyDaysAgo.toISOString());
+
+  if (error) {
+    console.error(`Error fetching sales for recipe ${recipeId}:`, error);
+  }
 
   // Group by actual DATE first
   const salesByDate: Record<string, number> = {};
