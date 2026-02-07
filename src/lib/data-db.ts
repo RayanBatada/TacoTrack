@@ -1,149 +1,277 @@
-// ==========================================
-// Types (kept from original)
-// ==========================================
+// lib/data-db.ts
+import { supabase } from './supabase';
 
-export interface Ingredient {
-  id: string;
-  name: string;
-  category: "protein" | "dairy" | "produce" | "dry-goods" | "beverage" | "other";
-  unit: string;
-  onHand: number;
-  parLevel: number;
-  costPerUnit: number;
-  vendor: string;
-  storageLocation: string;
-  expiryDate: string;
-  lastDelivery: string;
-  leadTimeDays: number;
-  dailyUsage: number[];
-}
-
-export interface Recipe {
+// =============================================================================
+// TYPES
+// =============================================================================
+export type Recipe = {
   id: string;
   name: string;
   category: string;
-  ingredients: { ingredientId: string; qty: number; unit: string }[];
   yieldPercent: number;
   sellPrice: number;
-  dailySales: number[];
-  popularity?: number;
+  active: boolean;
+  ingredients: { ingredientId: string; qty: number }[];
+  dailySales: number[]; // For backward compatibility with charts
+};
 
-  // Added to match usage in recipes page
-  description?: string;
-  prepTime?: number;
-  servings?: number;
-  difficulty?: "easy" | "medium" | "hard";
-}
+export type Ingredient = {
+  id: string;
+  name: string;
+  category: string;
+  unit: string;
+  onHand: number;
+  parLevel: number;
+  reorderPoint: number;
+  costPerUnit: number;
+  vendor: string;
+  storageLocation: string | null;
+  leadTimeDays: number;
+  expiryDate: string;
+  dailyUsage: number[]; // [Sun, Mon, Tue, Wed, Thu, Fri, Sat]
+};
 
-export interface Order {
+export type Order = {
   id: string;
   vendor: string;
-  items: { ingredientId: string; qty: number; unitCost: number }[];
-  status: "suggested" | "pending" | "placed" | "delivered";
-  deliveryDate: string;
+  items: any[];
+  status: string;
+  deliveryDate: string | null;
   totalCost: number;
-}
+};
 
-export interface WasteEntry {
+export type WasteEntry = {
   id: string;
   ingredientId: string;
   qty: number;
-  reason: "expired" | "spoiled" | "over-prep" | "dropped" | "other";
+  reason: string;
   date: string;
   costLost: number;
-}
+};
 
-export interface Alert {
+export type Alert = {
   id: string;
-  type: "low-stock" | "expiring" | "delivery" | "price-spike" | "waste";
-  severity: "critical" | "warning" | "info";
+  type: string;
+  severity: 'critical' | 'warning' | 'info';
   title: string;
   description: string;
   action: string;
   ingredientId?: string;
-}
+};
 
-// ==========================================
-// Helper to build full API URL
-// ==========================================
-function getApiUrl(path: string): string {
-  if (typeof window !== 'undefined') {
-    // Client-side: use relative URL
-    return path;
-  }
-  // Server-side: use full URL
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-  return `${baseUrl}${path}`;
-}
+// =============================================================================
+// FETCH RECIPES WITH DAILY SALES FROM sales_events
+// =============================================================================
+export async function getRecipes(): Promise<Recipe[]> {
+  // Fetch recipes
+  const { data: recipesData, error: recError } = await supabase
+    .from('recipes')
+    .select('*')
+    .eq('active', true);
 
-// ==========================================
-// API Data Fetchers (without caching for now)
-// ==========================================
-
-// Fetch recipes from API
-async function fetchRecipes(): Promise<Recipe[]> {
-  try {
-    const url = getApiUrl("/api/recipes");
-    const response = await fetch(url, { cache: "no-store" });
-    if (!response.ok) throw new Error("Failed to fetch recipes");
-    const data = await response.json();
-    return data || [];
-  } catch (error) {
-    console.error("Error fetching recipes:", error);
+  if (recError) {
+    console.error('Error fetching recipes:', recError);
     return [];
   }
+
+  // Fetch recipe ingredients
+  const { data: ingredientsData } = await supabase
+    .from('recipe_ingredients')
+    .select('recipe_id, ingredient_id, quantity');
+
+  // For each recipe, calculate daily sales from sales_events
+  const recipesWithSales = await Promise.all(
+    (recipesData || []).map(async (recipe) => {
+      const dailySales = await calculateDailySalesForRecipe(recipe.id);
+      const ingredients = (ingredientsData || [])
+        .filter(ri => ri.recipe_id === recipe.id)
+        .map(ri => ({ ingredientId: ri.ingredient_id, qty: ri.quantity }));
+
+      return {
+        id: recipe.id,
+        name: recipe.name,
+        category: recipe.category,
+        yieldPercent: recipe.yield_percent,
+        sellPrice: recipe.sell_price,
+        active: recipe.active,
+        ingredients,
+        dailySales, // [Sun, Mon, Tue, Wed, Thu, Fri, Sat]
+      };
+    })
+  );
+
+  return recipesWithSales;
 }
 
-// Fetch ingredients from API
-async function fetchIngredients(): Promise<Ingredient[]> {
-  try {
-    const url = getApiUrl("/api/ingredients");
-    const response = await fetch(url, { cache: "no-store" });
-    if (!response.ok) throw new Error("Failed to fetch ingredients");
-    const data = await response.json();
-    return data || [];
-  } catch (error) {
-    console.error("Error fetching ingredients:", error);
+// Calculate daily sales for a recipe from sales_events
+async function calculateDailySalesForRecipe(recipeId: string): Promise<number[]> {
+  const fourWeeksAgo = new Date();
+  fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
+
+  const { data: salesData } = await supabase
+    .from('sales_events')
+    .select('quantity, day_of_week')
+    .eq('recipe_id', recipeId)
+    .gte('sale_timestamp', fourWeeksAgo.toISOString());
+
+  // Group by day of week and average
+  const salesByDay: Record<number, number[]> = {
+    0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: []
+  };
+
+  (salesData || []).forEach(sale => {
+    salesByDay[sale.day_of_week].push(sale.quantity);
+  });
+
+  // Return average for each day [Sun, Mon, Tue, Wed, Thu, Fri, Sat]
+  return [0, 1, 2, 3, 4, 5, 6].map(day => {
+    const values = salesByDay[day];
+    return values.length > 0 
+      ? Math.round(values.reduce((a, b) => a + b, 0) / values.length)
+      : 0;
+  });
+}
+
+// =============================================================================
+// FETCH INGREDIENTS WITH DAILY USAGE FROM sales_events
+// =============================================================================
+export async function getIngredients(): Promise<Ingredient[]> {
+  const { data: ingredientsData, error } = await supabase
+    .from('ingredients')
+    .select('*');
+
+  if (error) {
+    console.error('Error fetching ingredients:', error);
     return [];
   }
+
+  // Calculate daily usage for each ingredient
+  const ingredientsWithUsage = await Promise.all(
+    (ingredientsData || []).map(async (ing) => {
+      const dailyUsage = await calculateDailyUsageForIngredient(ing.id);
+
+      return {
+        id: ing.id,
+        name: ing.name,
+        category: ing.category,
+        unit: ing.unit,
+        onHand: ing.on_hand,
+        parLevel: ing.par_level,
+        reorderPoint: ing.reorder_point,
+        costPerUnit: ing.cost_per_unit,
+        vendor: ing.vendor,
+        storageLocation: ing.storage_location,
+        leadTimeDays: ing.lead_time_days,
+        expiryDate: getExpiryDate(ing), // Calculated based on category
+        dailyUsage, // [Sun, Mon, Tue, Wed, Thu, Fri, Sat]
+      };
+    })
+  );
+
+  return ingredientsWithUsage;
 }
 
-// Fetch orders from API
-async function fetchOrders(): Promise<Order[]> {
-  try {
-    const url = getApiUrl("/api/orders");
-    const response = await fetch(url, { cache: "no-store" });
-    if (!response.ok) throw new Error("Failed to fetch orders");
-    const data = await response.json();
-    return data || [];
-  } catch (error) {
-    console.error("Error fetching orders:", error);
+// Calculate daily usage for an ingredient from sales_events
+async function calculateDailyUsageForIngredient(ingredientId: string): Promise<number[]> {
+  // Get recipes that use this ingredient
+  const { data: recipeLinks } = await supabase
+    .from('recipe_ingredients')
+    .select('recipe_id, quantity')
+    .eq('ingredient_id', ingredientId);
+
+  if (!recipeLinks || recipeLinks.length === 0) {
+    return [0, 0, 0, 0, 0, 0, 0];
+  }
+
+  // Get sales for these recipes (last 4 weeks)
+  const fourWeeksAgo = new Date();
+  fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
+
+  const { data: salesData } = await supabase
+    .from('sales_events')
+    .select('recipe_id, quantity, day_of_week')
+    .in('recipe_id', recipeLinks.map(r => r.recipe_id))
+    .gte('sale_timestamp', fourWeeksAgo.toISOString());
+
+  // Calculate ingredient usage by day of week
+  const usageByDay: Record<number, number[]> = {
+    0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: []
+  };
+
+  (salesData || []).forEach(sale => {
+    const recipeLink = recipeLinks.find(r => r.recipe_id === sale.recipe_id);
+    if (recipeLink) {
+      const ingredientUsed = sale.quantity * recipeLink.quantity;
+      usageByDay[sale.day_of_week].push(ingredientUsed);
+    }
+  });
+
+  // Return average for each day
+  return [0, 1, 2, 3, 4, 5, 6].map(day => {
+    const values = usageByDay[day];
+    return values.length > 0 
+      ? values.reduce((a, b) => a + b, 0) / values.length 
+      : 0;
+  });
+}
+
+// Helper: Get expiry date (estimate based on category)
+function getExpiryDate(ing: any): string {
+  const today = new Date();
+  const daysToAdd = ing.category === 'produce' ? 7 : 
+                    ing.category === 'protein' ? 5 :
+                    ing.category === 'dairy' ? 14 : 30;
+  
+  today.setDate(today.getDate() + daysToAdd);
+  return today.toISOString().split('T')[0];
+}
+
+// =============================================================================
+// FETCH ORDERS
+// =============================================================================
+export async function getOrders(): Promise<Order[]> {
+  const { data, error } = await supabase
+    .from('orders')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(20);
+
+  if (error) {
+    console.error('Error fetching orders:', error);
     return [];
   }
+
+  return (data || []).map(o => ({
+    id: o.id,
+    vendor: o.vendor,
+    items: o.items || [],
+    status: o.status,
+    deliveryDate: o.delivery_date,
+    totalCost: o.total_cost || 0,
+  }));
 }
 
-// Fetch waste entries from API
-async function fetchWasteEntries(): Promise<WasteEntry[]> {
-  try {
-    const url = getApiUrl("/api/waste");
-    const response = await fetch(url, { cache: "no-store" });
-    if (!response.ok) throw new Error("Failed to fetch waste entries");
-    const data = await response.json();
-    return data || [];
-  } catch (error) {
-    console.error("Error fetching waste entries:", error);
+// =============================================================================
+// FETCH WASTE ENTRIES
+// =============================================================================
+export async function getWasteEntries(): Promise<WasteEntry[]> {
+  const { data, error } = await supabase
+    .from('waste_entries')
+    .select('*')
+    .order('date', { ascending: false })
+    .limit(100);
+
+  if (error) {
+    console.error('Error fetching waste:', error);
     return [];
   }
+
+  return (data || []).map(w => ({
+    id: w.id,
+    ingredientId: w.ingredient_id,
+    qty: w.qty,
+    reason: w.reason,
+    date: w.date,
+    costLost: w.cost_lost || 0,
+  }));
 }
-
-// Export as lazy-loaded data (will need to be awaited in components)
-export const getRecipes = fetchRecipes;
-export const getIngredients = fetchIngredients;
-export const getOrders = fetchOrders;
-export const getWasteEntries = fetchWasteEntries;
-
-// For backward compatibility with direct imports, provide empty arrays initially
-export const recipes: Recipe[] = [];
-export const ingredients: Ingredient[] = [];
-export const orders: Order[] = [];
-export const wasteEntries: WasteEntry[] = [];
