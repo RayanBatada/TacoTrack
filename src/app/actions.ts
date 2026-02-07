@@ -1,12 +1,18 @@
 "use server";
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { ingredients, recipes } from "@/lib/data";
+import { getIngredients, getRecipes } from "@/lib/data";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 export async function chatWithGemini(userMessage: string) {
     try {
+        // Fetch current data from Supabase
+        const [ingredients, recipes] = await Promise.all([
+            getIngredients(),
+            getRecipes(),
+        ]);
+
         const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
         // 1. Prepare Inventory Data
@@ -40,10 +46,14 @@ export async function chatWithGemini(userMessage: string) {
       - If asked "How many tacos can I make?", check the ingredients for that taco and the current stock levels.
     `;
 
-        const result = await model.generateContent([
-            systemPrompt,
-            `User Question: ${userMessage}`
-        ]);
+        const result = await model.generateContent({
+            contents: [
+                {
+                    role: "user",
+                    parts: [{ text: systemPrompt + `\n\nUser Question: ${userMessage}` }]
+                }
+            ]
+        });
 
         return result.response.text();
     } catch (error) {

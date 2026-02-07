@@ -2,12 +2,14 @@
 export type { Ingredient, Recipe, Order, WasteEntry, Alert } from "@/lib/data-db";
 export { getRecipes, getIngredients, getOrders, getWasteEntries } from "@/lib/data-db";
 
+import type { Ingredient, Recipe, Order, WasteEntry, Alert } from "@/lib/data-db";
+
 // Export empty arrays for backward compatibility
 // Components should fetch actual data in useEffect
-export const ingredients: any[] = [];
-export const recipes: any[] = [];
-export const orders: any[] = [];
-export const wasteEntries: any[] = [];
+export const ingredients: Ingredient[] = [];
+export const recipes: Recipe[] = [];
+export const orders: Order[] = [];
+export const wasteEntries: WasteEntry[] = [];
 
 // ==========================================
 // Helper Functions (work with passed-in data)
@@ -20,20 +22,20 @@ export function avgDailyUsage(usage: number[]): number {
   return usage.reduce((sum, val, i) => sum + val * weights[i], 0) / totalWeight;
 }
 
-export function daysOfStock(ingredient: any): number {
+export function daysOfStock(ingredient: Ingredient): number {
   const avg = avgDailyUsage(ingredient.dailyUsage);
   if (avg <= 0) return 999;
   return Math.round((ingredient.onHand / avg) * 10) / 10;
 }
 
-export function stockoutDate(ingredient: any): string {
+export function stockoutDate(ingredient: Ingredient): string {
   const days = daysOfStock(ingredient);
   const date = new Date();
   date.setDate(date.getDate() + Math.floor(days));
   return date.toISOString().split("T")[0];
 }
 
-export function suggestedOrderQty(ingredient: any): number {
+export function suggestedOrderQty(ingredient: Ingredient): number {
   const avg = avgDailyUsage(ingredient.dailyUsage);
   const safetyDays = 2;
   const orderCoverDays = 7;
@@ -42,21 +44,21 @@ export function suggestedOrderQty(ingredient: any): number {
   return toOrder;
 }
 
-export function urgencyLevel(ingredient: any): "critical" | "warning" | "good" {
+export function urgencyLevel(ingredient: Ingredient): "critical" | "warning" | "good" {
   const days = daysOfStock(ingredient);
   if (days <= 1.5) return "critical";
   if (days <= 3) return "warning";
   return "good";
 }
 
-export function daysUntilExpiry(ingredient: any): number {
+export function daysUntilExpiry(ingredient: Ingredient): number {
   const now = new Date();
   const exp = new Date(ingredient.expiryDate);
   return Math.max(0, Math.ceil((exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
 }
 
-export function foodCostPercent(recipe: any, ingredients: any[]): number {
-  const cost = recipe.ingredients.reduce((sum: number, ri: any) => {
+export function foodCostPercent(recipe: Recipe, ingredients: Ingredient[]): number {
+  const cost = recipe.ingredients.reduce((sum: number, ri: { ingredientId: string; qty: number }) => {
     const ing = ingredients.find((i) => i.id === ri.ingredientId);
     if (!ing) return sum;
     return sum + ri.qty * ing.costPerUnit;
@@ -64,14 +66,14 @@ export function foodCostPercent(recipe: any, ingredients: any[]): number {
   return Math.round((cost / recipe.sellPrice) * 100);
 }
 
-export function totalWasteToday(wasteEntries: any[]): number {
+export function totalWasteToday(wasteEntries: WasteEntry[]): number {
   const today = new Date().toISOString().split("T")[0];
   return wasteEntries
     .filter((w) => w.date === today)
     .reduce((sum, w) => sum + w.costLost, 0);
 }
 
-export function generateAlerts(ingredients: any[]): any[] {
+export function generateAlerts(ingredients: Ingredient[]): Alert[] {
   const alerts: any[] = [];
 
   for (const ing of ingredients) {
@@ -115,8 +117,8 @@ export function generateAlerts(ingredients: any[]): any[] {
   return alerts;
 }
 
-export function generateSuggestedOrders(ingredients: any[]): any[] {
-  const vendorGroups: Record<string, any[]> = {};
+export function generateSuggestedOrders(ingredients: Ingredient[]): { id: string; vendor: string; items: { ingredientId: string; qty: number; unitCost: number }[]; status: "suggested"; deliveryDate: string; totalCost: number }[] {
+  const vendorGroups: Record<string, { ingredientId: string; qty: number; unitCost: number }[]> = {};
 
   for (const ing of ingredients) {
     const qty = suggestedOrderQty(ing);
@@ -140,7 +142,7 @@ export function generateSuggestedOrders(ingredients: any[]): any[] {
 }
 
 // Chart data helpers
-export function burndownData(ingredient: any): { day: string; stock: number }[] {
+export function burndownData(ingredient: Ingredient): { day: string; stock: number }[] {
   const avg = avgDailyUsage(ingredient.dailyUsage);
   const days = ["Today", "Day 2", "Day 3", "Day 4", "Day 5", "Day 6", "Day 7"];
   let stock = ingredient.onHand;
@@ -151,7 +153,7 @@ export function burndownData(ingredient: any): { day: string; stock: number }[] 
   });
 }
 
-export function weeklyUsageData(ingredient: any): { day: string; usage: number }[] {
+export function weeklyUsageData(ingredient: Ingredient): { day: string; usage: number }[] {
   const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
   return ingredient.dailyUsage.slice(-7).map((usage: number, i: number) => ({
     day: dayNames[i],
@@ -159,7 +161,7 @@ export function weeklyUsageData(ingredient: any): { day: string; usage: number }
   }));
 }
 
-export function salesTrendData(recipes: any[]): { day: string; sales: number; revenue: number; lastWeek: number }[] {
+export function salesTrendData(recipes: Recipe[]): { day: string; sales: number; revenue: number; lastWeek: number }[] {
   const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "Mon2", "Tue2", "Wed2", "Thu2", "Fri2", "Sat2", "Sun2"];
   return dayLabels.map((label, i) => ({
     day: label.replace("2", ""),
@@ -172,7 +174,7 @@ export function salesTrendData(recipes: any[]): { day: string; sales: number; re
   }));
 }
 
-export function wasteByCategory(wasteEntries: any[], ingredients: any[]): { category: string; cost: number }[] {
+export function wasteByCategory(wasteEntries: WasteEntry[], ingredients: Ingredient[]): { category: string; cost: number }[] {
   const cats: Record<string, number> = {};
   for (const w of wasteEntries) {
     const ing = ingredients.find((i) => i.id === w.ingredientId);
@@ -185,7 +187,7 @@ export function wasteByCategory(wasteEntries: any[], ingredients: any[]): { cate
   }));
 }
 
-export function topSellingItems(recipes: any[], ingredients: any[]): { name: string; avgSales: number; margin: number }[] {
+export function topSellingItems(recipes: Recipe[], ingredients: Ingredient[]): { name: string; avgSales: number; margin: number }[] {
   return recipes
     .map((r) => ({
       name: r.name,
