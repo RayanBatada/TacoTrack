@@ -64,13 +64,27 @@ export interface Alert {
 }
 
 // ==========================================
+// Helper to build full API URL
+// ==========================================
+function getApiUrl(path: string): string {
+  if (typeof window !== 'undefined') {
+    // Client-side: use relative URL
+    return path;
+  }
+  // Server-side: use full URL
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+  return `${baseUrl}${path}`;
+}
+
+// ==========================================
 // API Data Fetchers (without caching for now)
 // ==========================================
 
 // Fetch recipes from API
 async function fetchRecipes(): Promise<Recipe[]> {
   try {
-    const response = await fetch("/api/recipes", { cache: "no-store" });
+    const url = getApiUrl("/api/recipes");
+    const response = await fetch(url, { cache: "no-store" });
     if (!response.ok) throw new Error("Failed to fetch recipes");
     const data = await response.json();
     return data || [];
@@ -83,7 +97,8 @@ async function fetchRecipes(): Promise<Recipe[]> {
 // Fetch ingredients from API
 async function fetchIngredients(): Promise<Ingredient[]> {
   try {
-    const response = await fetch("/api/ingredients", { cache: "no-store" });
+    const url = getApiUrl("/api/ingredients");
+    const response = await fetch(url, { cache: "no-store" });
     if (!response.ok) throw new Error("Failed to fetch ingredients");
     const data = await response.json();
     return data || [];
@@ -96,7 +111,8 @@ async function fetchIngredients(): Promise<Ingredient[]> {
 // Fetch orders from API
 async function fetchOrders(): Promise<Order[]> {
   try {
-    const response = await fetch("/api/orders", { cache: "no-store" });
+    const url = getApiUrl("/api/orders");
+    const response = await fetch(url, { cache: "no-store" });
     if (!response.ok) throw new Error("Failed to fetch orders");
     const data = await response.json();
     return data || [];
@@ -109,7 +125,8 @@ async function fetchOrders(): Promise<Order[]> {
 // Fetch waste entries from API
 async function fetchWasteEntries(): Promise<WasteEntry[]> {
   try {
-    const response = await fetch("/api/waste", { cache: "no-store" });
+    const url = getApiUrl("/api/waste");
+    const response = await fetch(url, { cache: "no-store" });
     if (!response.ok) throw new Error("Failed to fetch waste entries");
     const data = await response.json();
     return data || [];

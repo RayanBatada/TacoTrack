@@ -1,16 +1,20 @@
 "use server";
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { ingredients, recipes } from "@/lib/data";
+import { getIngredients, getRecipes } from "@/lib/data-db";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 export async function chatWithGemini(userMessage: string) {
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemma-3-27b-it" });
 
         // 1. DATA PROCESSING (The "Database Pull")
-        // We convert your raw data objects into a clear text format the AI can read.
+        // Fetch live data from Supabase
+        const ingredients = await getIngredients();
+        const recipes = await getRecipes();
+
+        // Convert your raw data objects into a clear text format the AI can read.
 
         // --- INVENTORY DATABASE ---
         const inventoryDB = ingredients.map(i => {
