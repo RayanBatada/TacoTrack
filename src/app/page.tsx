@@ -650,8 +650,8 @@ export default function HomePage() {
           {/* Header */}
           <div className="flex items-center gap-2 mb-2 text-warning shrink-0">
             <MessageSquare className="h-4 w-4" />
-            <h2 className="font-bold text-sm tracking-wide">
-              TacoTalk (AI Copilot)
+            <h2 className="font-bold text-sm tracking-wide text-[15px]">
+              TacoTalk AI
             </h2>
           </div>
 
@@ -716,8 +716,8 @@ export default function HomePage() {
           {/* Header */}
           <div className="flex items-center gap-2 mb-3 text-white">
             <UtensilsCrossed className="h-4 w-4" />
-            <h2 className="font-bold text-sm tracking-wide">
-              Food for Thought (Waste Indicator)
+            <h2 className="font-bold text-sm tracking-wide text-[15px]">
+              FOOD FOR THOUGHT
             </h2>
           </div>
 
@@ -770,13 +770,14 @@ export default function HomePage() {
                         paddingAngle={2} // Space between slices
                         dataKey="value"
                         isAnimationActive={false} // No animation for cleaner look
+                        stroke="#ffffff" // Color of stroke
+                        strokeWidth={1.5} // Width of stroke
                       >
                         {/* Color each slice */}
                         {wasteChartData.map((_, index) => (
                           <Cell
                             key={`cell-${index}`}
                             fill={WASTE_COLORS[index % WASTE_COLORS.length]}
-                            stroke="none" // No white border on hover
                           />
                         ))}
                       </Pie>
@@ -790,15 +791,15 @@ export default function HomePage() {
                 </div>
 
                 {/* Legend on the right side */}
-                <div className="flex flex-col gap-2 justify-center text-[10px]">
+                <div className="flex flex-col gap-2 justify-center text-[15px]">
                   {wasteChartData.map((item, idx) => (
                     <div
-                      key={item.name}
+                      key={item.name.toUpperCase()}
                       className="flex items-center gap-2"
                     >
                       {/* Color dot */}
                       <div
-                        className="h-2.5 w-2.5 rounded-full shrink-0"
+                        className="h-3 w-3 rounded-full shrink-0"
                         style={{
                           backgroundColor:
                             WASTE_COLORS[idx % WASTE_COLORS.length],
@@ -807,7 +808,7 @@ export default function HomePage() {
                       {/* Category name and percentage */}
                       <div className="flex flex-col">
                         <span className="text-muted-foreground leading-tight">
-                          {item.name}
+                          {item.name.toUpperCase()}
                         </span>
                         <span className="font-semibold text-foreground leading-tight">
                           {(
