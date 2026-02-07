@@ -196,3 +196,28 @@ export function topSellingItems(recipes: Recipe[], ingredients: Ingredient[]): {
     }))
     .sort((a, b) => b.avgSales - a.avgSales);
 }
+
+export function dishesWeCanMake(recipes: Recipe[], ingredients: Ingredient[]): { recipeId: string; name: string; canMake: number; limitingIngredient: string }[] {
+  return recipes.map((recipe) => {
+    let minBatches = Infinity;
+    let limitingIngredient = "";
+
+    for (const ri of recipe.ingredients) {
+      const ing = ingredients.find((i) => i.id === ri.ingredientId);
+      if (!ing) continue;
+
+      const batchesPossible = Math.floor(ing.onHand / ri.qty);
+      if (batchesPossible < minBatches) {
+        minBatches = batchesPossible;
+        limitingIngredient = ing.name;
+      }
+    }
+
+    return {
+      recipeId: recipe.id,
+      name: recipe.name,
+      canMake: minBatches === Infinity ? 0 : minBatches,
+      limitingIngredient,
+    };
+  });
+}

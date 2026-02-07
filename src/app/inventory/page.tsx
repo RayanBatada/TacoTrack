@@ -14,10 +14,13 @@ import {
 } from "lucide-react";
 import {
   getIngredients,
+  getRecipes,
   daysOfStock,
   urgencyLevel,
   daysUntilExpiry,
+  dishesWeCanMake,
   type Ingredient,
+  type Recipe,
 } from "@/lib/data";
 
 type ViewMode = "ingredients" | "dishes";
@@ -30,15 +33,17 @@ export default function InventoryPage() {
   const [sort, setSort] = useState<SortMode>("urgency");
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const ing = await getIngredients();
+        const [ing, rec] = await Promise.all([getIngredients(), getRecipes()]);
         setIngredients(ing);
+        setRecipes(rec);
       } catch (error) {
-        console.error("Error loading ingredients:", error);
+        console.error("Error loading data:", error);
       } finally {
         setLoading(false);
       }
@@ -47,7 +52,11 @@ export default function InventoryPage() {
   }, []);
 
   if (loading) {
-    return <div className="p-6"><p>Loading inventory...</p></div>;
+    return (
+      <div className="p-6">
+        <p>Loading inventory...</p>
+      </div>
+    );
   }
 
   const handleSortClick = (sortMode: SortMode) => {
@@ -75,6 +84,16 @@ export default function InventoryPage() {
       else if (sort === "expiry") comparison = a.expDays - b.expDays;
       else if (sort === "quantity") comparison = a.onHand - b.onHand;
 
+      return sortOrder === "asc" ? comparison : -comparison;
+    });
+
+  const dishes = dishesWeCanMake(recipes, ingredients)
+    .filter((d) => d.name.toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => {
+      let comparison = 0;
+      if (sort === "urgency") comparison = b.canMake - a.canMake;
+      else if (sort === "expiry") comparison = 0;
+      else if (sort === "quantity") comparison = a.canMake - b.canMake;
       return sortOrder === "asc" ? comparison : -comparison;
     });
 
@@ -231,14 +250,62 @@ export default function InventoryPage() {
           ))}
         </div>
       ) : (
-        <div className="py-12 text-center">
-          <ChefHat className="mx-auto mb-3 h-12 w-12 text-muted-foreground/50" />
-          <p className="text-sm font-medium text-foreground">
-            Dishes view coming soon
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Track prepared dishes and their shelf life
-          </p>
+        <div className="space-y-2">
+          {dishes.map((dish, i) => (
+            <Link
+              key={dish.recipeId}
+              href={`/recipes/${dish.recipeId}`}
+              className="glass-card flex items-center gap-3 rounded-xl p-3.5 transition-all active:scale-[0.98] hover:bg-secondary/50"
+              style={{
+                opacity: 0,
+                animation: `float-up 0.3s ease-out ${i * 0.04}s forwards`,
+              }}
+            >
+              <div
+                className="flex h-10 w-1 rounded-full"
+                style={{
+                  backgroundColor:
+                    dish.canMake > 5
+                      ? "#22c55e"
+                      : dish.canMake > 2
+                        ? "#eab308"
+                        : "#ef4444",
+                  boxShadow:
+                    dish.canMake > 5
+                      ? "0 0 6px rgba(34, 197, 94, 0.4)"
+                      : dish.canMake > 2
+                        ? "0 0 6px rgba(234, 179, 8, 0.3)"
+                        : "0 0 6px rgba(239, 68, 68, 0.4)",
+                }}
+              />
+
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{dish.name}</p>
+                <div className="mt-0.5 flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">
+                    Limited by: {dish.limitingIngredient}
+                  </span>
+                </div>
+              </div>
+
+              <div className="text-right shrink-0">
+                <span className="text-sm font-bold text-foreground">
+                  {dish.canMake}
+                </span>
+                <p className="text-[10px] text-muted-foreground">can make</p>
+              </div>
+
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+            </Link>
+          ))}
+          {dishes.length === 0 && (
+            <div className="py-12 text-center">
+              <ChefHat className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
+                No dishes match your search
+              </p>
+            </div>
+          )}
         </div>
       )}
 
