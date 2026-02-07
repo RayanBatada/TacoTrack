@@ -14,7 +14,6 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { chatWithGemini } from "./actions";
 import { useForecast } from "@/lib/useForecast";
-import { calculateUrgency, getUrgencyMessage } from "@/lib/forecasting-helpers";
 
 // Icons from lucide-react library
 import {
@@ -45,6 +44,7 @@ import {
 } from "@/lib/data";
 
 // Chart components from recharts library
+// @ts-expect-error Cell has deprecation warning but is required for the PieChart
 import {
   AreaChart,
   Area,
@@ -54,7 +54,7 @@ import {
   Tooltip,
   PieChart,
   Pie,
-  Cell, // ADD THIS LINE
+  Cell,
 } from "recharts";
 
 // =============================================================================

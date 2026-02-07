@@ -110,25 +110,35 @@ async function calculateDailySalesForRecipe(recipeId: string): Promise<number[]>
 
   const { data: salesData } = await supabase
     .from('sales_events')
-    .select('quantity, day_of_week')
+    .select('quantity, day_of_week, sale_timestamp')
     .eq('recipe_id', recipeId)
     .gte('sale_timestamp', fourWeeksAgo.toISOString());
 
-  // Group by day of week and average
-  const salesByDay: Record<number, number[]> = {
+  // Group by actual DATE first
+  const salesByDate: Record<string, number> = {};
+  
+  (salesData || []).forEach(sale => {
+    const dateKey = sale.sale_timestamp.split('T')[0];
+    salesByDate[dateKey] = (salesByDate[dateKey] || 0) + sale.quantity;
+  });
+
+  // Group daily totals by day of week
+  const dailyTotalsByDow: Record<number, number[]> = {
     0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: []
   };
 
-  (salesData || []).forEach(sale => {
-    salesByDay[sale.day_of_week].push(sale.quantity);
+  Object.entries(salesByDate).forEach(([dateStr, total]) => {
+    const date = new Date(dateStr);
+    const dow = date.getDay();
+    dailyTotalsByDow[dow].push(total);
   });
 
-  // Return average for each day [Sun, Mon, Tue, Wed, Thu, Fri, Sat]
+  // Return average daily total for each day of week
   return [0, 1, 2, 3, 4, 5, 6].map(day => {
-    const values = salesByDay[day];
-    return values.length > 0 
-      ? Math.round(values.reduce((a, b) => a + b, 0) / values.length)
-      : 0;
+    const dailyTotals = dailyTotalsByDow[day];
+    if (dailyTotals.length === 0) return 0;
+    const sum = dailyTotals.reduce((a, b) => a + b, 0);
+    return Math.round(sum / dailyTotals.length);
   });
 }
 
@@ -189,29 +199,39 @@ async function calculateDailyUsageForIngredient(ingredientId: string): Promise<n
 
   const { data: salesData } = await supabase
     .from('sales_events')
-    .select('recipe_id, quantity, day_of_week')
+    .select('recipe_id, quantity, day_of_week, sale_timestamp')
     .in('recipe_id', recipeLinks.map(r => r.recipe_id))
     .gte('sale_timestamp', fourWeeksAgo.toISOString());
 
-  // Calculate ingredient usage by day of week
-  const usageByDay: Record<number, number[]> = {
-    0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: []
-  };
-
+  // Group by actual DATE first, then by day of week
+  const usageByDate: Record<string, number> = {};
+  
   (salesData || []).forEach(sale => {
     const recipeLink = recipeLinks.find(r => r.recipe_id === sale.recipe_id);
     if (recipeLink) {
+      const dateKey = sale.sale_timestamp.split('T')[0]; // YYYY-MM-DD
       const ingredientUsed = sale.quantity * recipeLink.quantity;
-      usageByDay[sale.day_of_week].push(ingredientUsed);
+      usageByDate[dateKey] = (usageByDate[dateKey] || 0) + ingredientUsed;
     }
   });
 
-  // Return average for each day
+  // Now group daily totals by day of week and average
+  const dailyTotalsByDow: Record<number, number[]> = {
+    0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: []
+  };
+
+  Object.entries(usageByDate).forEach(([dateStr, total]) => {
+    const date = new Date(dateStr);
+    const dow = date.getDay();
+    dailyTotalsByDow[dow].push(total);
+  });
+
+  // Return average daily total for each day of week
   return [0, 1, 2, 3, 4, 5, 6].map(day => {
-    const values = usageByDay[day];
-    return values.length > 0 
-      ? values.reduce((a, b) => a + b, 0) / values.length 
-      : 0;
+    const dailyTotals = dailyTotalsByDow[day];
+    if (dailyTotals.length === 0) return 0;
+    const sum = dailyTotals.reduce((a, b) => a + b, 0);
+    return sum / dailyTotals.length; // Average of daily totals
   });
 }
 
