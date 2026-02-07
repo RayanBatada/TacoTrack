@@ -1,6 +1,6 @@
 "use client";
 
-import { use } from "react";
+import { use, useState, useEffect } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -13,7 +13,7 @@ import {
   Clock,
 } from "lucide-react";
 import {
-  ingredients,
+  getIngredients,
   daysOfStock,
   urgencyLevel,
   daysUntilExpiry,
@@ -21,6 +21,7 @@ import {
   avgDailyUsage,
   burndownData,
   weeklyUsageData,
+  type Ingredient,
 } from "@/lib/data";
 import {
   AreaChart,
@@ -40,7 +41,32 @@ export default function IngredientDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const ingredient = ingredients.find((i) => i.id === id);
+  const [ingredient, setIngredient] = useState<Ingredient | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadIngredient = async () => {
+      try {
+        const ingredients = await getIngredients();
+        const found = ingredients.find((i) => i.id === id);
+        setIngredient(found || null);
+      } catch (error) {
+        console.error("Error loading ingredient:", error);
+        setIngredient(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadIngredient();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p>Loading ingredient details...</p>
+      </div>
+    );
+  }
 
   if (!ingredient) {
     return (

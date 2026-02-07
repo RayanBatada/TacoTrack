@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ShoppingCart,
   ChevronDown,
@@ -9,11 +9,40 @@ import {
   Truck,
   Check,
 } from "lucide-react";
-import { ingredients, generateSuggestedOrders } from "@/lib/data";
+import {
+  getIngredients,
+  getOrders,
+  type Ingredient,
+  type Order,
+} from "@/lib/data";
 
 export default function OrdersPage() {
-  const [orders] = useState(() => generateSuggestedOrders(ingredients));
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [ord, ing] = await Promise.all([
+          getOrders(),
+          getIngredients(),
+        ]);
+        setOrders(ord);
+        setIngredients(ing);
+      } catch (error) {
+        console.error("Error loading data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
+
+  if (loading) {
+    return <div className="p-6"><p>Loading orders...</p></div>;
+  }
 
   const toggleExpand = (id: string) => {
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));

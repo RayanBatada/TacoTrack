@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import {
   TrendingUp,
   Sparkles,
@@ -9,14 +10,17 @@ import {
   BarChart3,
 } from "lucide-react";
 import {
+  getRecipes,
+  getIngredients,
+  getWasteEntries,
   salesTrendData,
   wasteByCategory,
   topSellingItems,
-  recipes,
-  ingredients,
   foodCostPercent,
   totalWasteToday,
-  wasteEntries,
+  type Recipe,
+  type Ingredient,
+  type WasteEntry,
 } from "@/lib/data";
 import {
   AreaChart,
@@ -35,7 +39,40 @@ import {
 const COLORS = ["#d946ef", "#4ade80", "#f59e0b", "#f472b6", "#60a5fa"];
 
 export default function InsightsPage() {
-  const salesData = salesTrendData();
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
+  const [wasteEntries, setWasteEntries] = useState<WasteEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [rec, ing, waste] = await Promise.all([
+          getRecipes(),
+          getIngredients(),
+          getWasteEntries(),
+        ]);
+        setRecipes(rec);
+        setIngredients(ing);
+        setWasteEntries(waste);
+      } catch (error) {
+        console.error("Error loading data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="p-6">
+        <p>Loading analytics...</p>
+      </div>
+    );
+  }
+
+  const salesData = salesTrendData(recipes);
   // Split into last week vs this week for comparison
   const lastWeekSales = salesData.slice(0, 7);
   const thisWeekSales = salesData.slice(7, 14);
@@ -51,13 +88,13 @@ export default function InsightsPage() {
     thisWeek: d.sales,
     lastWeek: lastWeekSales[i]?.sales || 0,
   }));
-  const wasteData = wasteByCategory();
-  const topSellers = topSellingItems();
+  const wasteData = wasteByCategory(wasteEntries, ingredients);
+  const topSellers = topSellingItems(recipes, ingredients);
   const totalWaste = wasteEntries.reduce((s, w) => s + w.costLost, 0);
-  const wasteToday = totalWasteToday();
+  const wasteToday = totalWasteToday(wasteEntries);
 
   const avgFoodCost = Math.round(
-    recipes.reduce((s, r) => s + foodCostPercent(r), 0) / recipes.length
+    recipes.reduce((s, r) => s + foodCostPercent(r, ingredients), 0) / recipes.length || 0
   );
 
   const totalWeeklyRevenue = thisWeekSales.reduce((s, d) => s + d.revenue, 0);
@@ -65,8 +102,8 @@ export default function InsightsPage() {
 
   const marginData = recipes.map((r) => ({
     name: r.name.length > 12 ? r.name.slice(0, 12) + "..." : r.name,
-    margin: 100 - foodCostPercent(r),
-    cost: foodCostPercent(r),
+    margin: 100 - foodCostPercent(r, ingredients),
+    cost: foodCostPercent(r, ingredients),
   })).sort((a, b) => b.margin - a.margin);
 
   return (
@@ -141,8 +178,8 @@ export default function InsightsPage() {
               <YAxis hide />
               <Tooltip
                 contentStyle={tooltipStyle}
-                formatter={(v: number, name: string) => [
-                  `${v} items`,
+                formatter={(v?: number, name?: string) => [
+                  `${v || 0} items`,
                   name === "thisWeek" ? "This Week" : "Last Week",
                 ]}
               />
@@ -202,7 +239,7 @@ export default function InsightsPage() {
               />
               <Tooltip
                 contentStyle={tooltipStyle}
-                formatter={(v: number) => [`${v}%`]}
+                formatter={(v?: number) => [`${(v || 0).toFixed(0)}%`]}
               />
               <Bar
                 dataKey="margin"
@@ -240,7 +277,7 @@ export default function InsightsPage() {
                 </Pie>
                 <Tooltip
                   contentStyle={tooltipStyle}
-                  formatter={(v: number) => [`$${v.toFixed(2)}`]}
+                  formatter={(v?: number) => [`$${(v || 0).toFixed(2)}`]}
                 />
               </PieChart>
             </ResponsiveContainer>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Search,
@@ -13,10 +13,11 @@ import {
   ArrowDown,
 } from "lucide-react";
 import {
-  ingredients,
+  getIngredients,
   daysOfStock,
   urgencyLevel,
   daysUntilExpiry,
+  type Ingredient,
 } from "@/lib/data";
 
 type ViewMode = "ingredients" | "dishes";
@@ -28,6 +29,26 @@ export default function InventoryPage() {
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SortMode>("urgency");
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
+  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const ing = await getIngredients();
+        setIngredients(ing);
+      } catch (error) {
+        console.error("Error loading ingredients:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
+
+  if (loading) {
+    return <div className="p-6"><p>Loading inventory...</p></div>;
+  }
 
   const handleSortClick = (sortMode: SortMode) => {
     if (sort === sortMode) {
