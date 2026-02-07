@@ -48,8 +48,11 @@ export default function OrdersPage() {
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const totalItems = orders.reduce((s, o) => s + o.items.length, 0);
-  const totalCost = orders.reduce((s, o) => s + o.totalCost, 0);
+  const totalItems = orders.reduce((s, o) => {
+    const items = Array.isArray(o.items) ? o.items : (typeof o.items === 'string' ? JSON.parse(o.items) : []);
+    return s + items.length;
+  }, 0);
+  const totalCost = orders.reduce((s, o) => s + (o.totalCost || 0), 0);
 
   return (
     <div className="p-6">
@@ -68,6 +71,7 @@ export default function OrdersPage() {
       {/* Order cards by vendor */}
       <div className="space-y-4">
         {orders.map((order, oi) => {
+          const items = Array.isArray(order.items) ? order.items : (typeof order.items === 'string' ? JSON.parse(order.items) : []);
           const isExpanded = expanded[order.id] !== false;
 
           return (
@@ -91,7 +95,7 @@ export default function OrdersPage() {
                   <div className="text-left">
                     <p className="text-sm font-semibold">{order.vendor}</p>
                     <p className="text-xs text-muted-foreground">
-                      {order.items.length} items · ${order.totalCost.toFixed(2)}
+                      {items.length} items · ${(order.totalCost || 0).toFixed(2)}
                     </p>
                   </div>
                 </div>
@@ -112,7 +116,7 @@ export default function OrdersPage() {
               {isExpanded && (
                 <div className="border-t border-white/[0.04] px-4 pb-4">
                   <div className="mt-3 space-y-2">
-                    {order.items.map((item: typeof order.items[number]) => {
+                    {items.map((item: any) => {
                       const ing = ingredients.find(
                         (i) => i.id === item.ingredientId,
                       );
@@ -131,7 +135,7 @@ export default function OrdersPage() {
                               {item.qty} {ing.unit}
                             </span>
                             <p className="text-[10px] text-muted-foreground">
-                              ${(item.qty * item.unitCost).toFixed(2)}
+                              ${((item.qty || 0) * (item.unitCost || 0)).toFixed(2)}
                             </p>
                           </div>
                         </div>
@@ -143,7 +147,7 @@ export default function OrdersPage() {
                   <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
                     <span>Delivered: {order.deliveryDate}</span>
                     <span className="font-medium text-foreground">
-                      Total: ${order.totalCost.toFixed(2)}
+                      Total: ${(order.totalCost || 0).toFixed(2)}
                     </span>
                   </div>
                 </div>

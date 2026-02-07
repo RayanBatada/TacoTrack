@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Search,
@@ -13,7 +13,12 @@ import {
   TrendingUp,
   Trash2,
 } from "lucide-react";
-import { Recipe, recipes as initialRecipes, ingredients } from "@/lib/data";
+import {
+  getRecipes,
+  getIngredients,
+  type Recipe,
+  type Ingredient,
+} from "@/lib/data";
 import {
   Dialog,
   DialogContent,
@@ -38,10 +43,15 @@ import { Separator } from "@/components/ui/separator";
 type SortMode = "popularity" | "name" | "time";
 
 export default function RecipesPage() {
+  // Data loading state
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // UI state
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SortMode>("popularity");
-  const [recipes, setRecipes] = useState<Recipe[]>(initialRecipes);
-
+  
   // Form State
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newRecipeName, setNewRecipeName] = useState("");
@@ -55,6 +65,28 @@ export default function RecipesPage() {
   const [newRecipeIngredients, setNewRecipeIngredients] = useState<
     { id: string; qty: string }[]
   >([]);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [rec, ing] = await Promise.all([
+          getRecipes(),
+          getIngredients(),
+        ]);
+        setRecipes(rec);
+        setIngredients(ing);
+      } catch (error) {
+        console.error("Error loading recipes:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
+
+  if (loading) {
+    return <div className="p-6"><p>Loading recipes...</p></div>;
+  }
 
   const filteredRecipes = recipes
     .filter(

@@ -64,23 +64,16 @@ export interface Alert {
 }
 
 // ==========================================
-// API Data Fetchers
+// API Data Fetchers (without caching for now)
 // ==========================================
-
-let cachedRecipes: Recipe[] | null = null;
-let cachedIngredients: Ingredient[] | null = null;
-let cachedOrders: Order[] | null = null;
-let cachedWaste: WasteEntry[] | null = null;
 
 // Fetch recipes from API
 async function fetchRecipes(): Promise<Recipe[]> {
-  if (cachedRecipes !== null) return cachedRecipes;
-  
   try {
     const response = await fetch("/api/recipes", { cache: "no-store" });
     if (!response.ok) throw new Error("Failed to fetch recipes");
-    cachedRecipes = await response.json();
-    return cachedRecipes || [];
+    const data = await response.json();
+    return data || [];
   } catch (error) {
     console.error("Error fetching recipes:", error);
     return [];
@@ -89,13 +82,11 @@ async function fetchRecipes(): Promise<Recipe[]> {
 
 // Fetch ingredients from API
 async function fetchIngredients(): Promise<Ingredient[]> {
-  if (cachedIngredients !== null) return cachedIngredients;
-  
   try {
     const response = await fetch("/api/ingredients", { cache: "no-store" });
     if (!response.ok) throw new Error("Failed to fetch ingredients");
-    cachedIngredients = await response.json();
-    return cachedIngredients || [];
+    const data = await response.json();
+    return data || [];
   } catch (error) {
     console.error("Error fetching ingredients:", error);
     return [];
@@ -104,13 +95,11 @@ async function fetchIngredients(): Promise<Ingredient[]> {
 
 // Fetch orders from API
 async function fetchOrders(): Promise<Order[]> {
-  if (cachedOrders !== null) return cachedOrders;
-  
   try {
     const response = await fetch("/api/orders", { cache: "no-store" });
     if (!response.ok) throw new Error("Failed to fetch orders");
-    cachedOrders = await response.json();
-    return cachedOrders || [];
+    const data = await response.json();
+    return data || [];
   } catch (error) {
     console.error("Error fetching orders:", error);
     return [];
@@ -119,13 +108,11 @@ async function fetchOrders(): Promise<Order[]> {
 
 // Fetch waste entries from API
 async function fetchWasteEntries(): Promise<WasteEntry[]> {
-  if (cachedWaste !== null) return cachedWaste;
-  
   try {
     const response = await fetch("/api/waste", { cache: "no-store" });
     if (!response.ok) throw new Error("Failed to fetch waste entries");
-    cachedWaste = await response.json();
-    return cachedWaste || [];
+    const data = await response.json();
+    return data || [];
   } catch (error) {
     console.error("Error fetching waste entries:", error);
     return [];
