@@ -1,73 +1,56 @@
+// components/bottom-nav.tsx
 "use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Package, ShoppingCart, TrendingUp, TreePine } from "lucide-react";
-import { cn } from "@/lib/utils";
-
-const tabs = [
-  { href: "/", label: "Dashboard", icon: Home },
-  { href: "/inventory", label: "Inventory", icon: Package },
-  { href: "/orders", label: "Orders", icon: ShoppingCart },
-  { href: "/insights", label: "Analytics", icon: TrendingUp },
-];
+import { Home, Package, ShoppingCart, TrendingUp, ChefHat } from "lucide-react";
 
 export function BottomNav() {
   const pathname = usePathname();
 
+  const navItems = [
+    { href: "/", label: "Dashboard", icon: Home },
+    { href: "/inventory", label: "Inventory", icon: Package },
+    { href: "/recipes", label: "Recipes", icon: ChefHat },
+    { href: "/orders", label: "Orders", icon: ShoppingCart },
+    { href: "/analytics", label: "Analytics", icon: TrendingUp },
+  ];
+
   return (
-    <aside className="fixed left-0 top-0 z-50 flex h-screen w-56 flex-col border-r border-primary/20 bg-sidebar/95 backdrop-blur-xl">
+    <nav className="fixed left-0 top-0 h-screen w-56 border-r border-primary/20 bg-background/95 backdrop-blur-xl z-50">
       {/* Logo */}
-      <div className="flex items-center gap-2.5 px-5 py-5 border-b border-primary/10">
-        <div className="h-8 w-8 overflow-hidden rounded-full border border-primary/20">
-          <img src="/logo.png" alt="Taco Track" className="h-full w-full object-cover" />
+      <div className="flex h-32 items-center gap-3 border-b border-primary/20 px-6">
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/50">
+          <span className="text-xl font-bold text-primary-foreground">🌮</span>
         </div>
-        <span className="text-lg font-bold tracking-tight">Taco Track</span>
+        <span className="text-xl font-bold tracking-tight">Taco Track</span>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-1">
-        {tabs.map((tab) => {
-          const isActive =
-            tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href);
+      {/* Nav Items */}
+      <div className="space-y-2 p-4">
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = pathname === item.href;
+
           return (
             <Link
-              key={tab.href}
-              href={tab.href}
-              className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
+              key={item.href}
+              href={item.href}
+              className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all ${
                 isActive
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-primary/5 hover:text-primary"
-              )}
+                  ? "bg-primary/10 text-primary shadow-sm"
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+              }`}
             >
-              <tab.icon
-                className={cn(
-                  "h-5 w-5",
-                  isActive && "drop-shadow-[0_0_6px_rgba(217,70,239,0.5)]"
-                )}
-              />
-              {tab.label}
+              <Icon className="h-5 w-5" />
+              {item.label}
               {isActive && (
-                <div className="ml-auto h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_6px_rgba(217,70,239,0.5)]" />
+                <div className="ml-auto h-2 w-2 rounded-full bg-primary shadow-sm shadow-primary/50" />
               )}
             </Link>
           );
         })}
-      </nav>
-
-      {/* Footer */}
-      <div className="border-t border-primary/10 px-5 py-4">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-primary to-purple-800 text-xs font-bold text-white">
-            TT
-          </div>
-          <div>
-            <p className="text-xs font-medium">Taco Track</p>
-            <p className="text-[10px] text-muted-foreground">Manager</p>
-          </div>
-        </div>
       </div>
-    </aside>
+    </nav>
   );
 }
