@@ -38,6 +38,10 @@ import {
   XAxis,
   YAxis,
   Tooltip,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
 } from "recharts";
 
 const tooltipStyle = {
@@ -156,9 +160,9 @@ export default function HomePage() {
   const avgFoodCost =
     recipes.length > 0
       ? Math.round(
-        recipes.reduce((s, r) => s + foodCostPercent(r, ingredients), 0) /
-        recipes.length,
-      )
+          recipes.reduce((s, r) => s + foodCostPercent(r, ingredients), 0) /
+            recipes.length,
+        )
       : 0;
 
   // Trend Data Preparation
@@ -203,6 +207,33 @@ export default function HomePage() {
   // Top/Bottom Performers
   const topSellers = topSellingItems(recipes, ingredients);
   const bottomThree = topSellers.slice(-3).reverse();
+
+  // Waste by category for pie chart
+  const wasteByCategory = wasteEntries.reduce(
+    (acc: Record<string, number>, w) => {
+      const ing = ingredients.find((i) => i.id === w.ingredientId);
+      const cat = ing?.category || "Other";
+      acc[cat] = (acc[cat] || 0) + w.costLost;
+      return acc;
+    },
+    {},
+  );
+
+  const wasteChartData = Object.entries(wasteByCategory).map(
+    ([name, value]) => ({
+      name,
+      value: Math.round(value * 100) / 100,
+    }),
+  );
+
+  const WASTE_COLORS = [
+    "#ef4444",
+    "#f97316",
+    "#eab308",
+    "#84cc16",
+    "#22c55e",
+    "#06b6d4",
+  ];
 
   // --- HANDLERS ---
 
@@ -325,66 +356,77 @@ export default function HomePage() {
       </div>
 
       {/* 2. MIDDLE SECTION (Action & Trends) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-[340px]">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-[420px]">
         {/* LEFT: ACTION REQUIRED */}
         <div className="glass-card rounded-xl p-5 flex flex-col relative overflow-hidden">
-          <div className="flex items-center gap-2 mb-4 text-destructive">
+          <div className="flex items-center gap-2 mb-4 text-white">
             <AlertTriangle className="h-5 w-5" />
             <h2 className="font-bold tracking-wide">ACTION REQUIRED</h2>
           </div>
-          <p className="text-xs text-muted-foreground mb-4 uppercase tracking-wider">
-            Sorted by Urgency
-          </p>
 
-          <div className="flex-1 overflow-y-auto pr-2 space-y-3">
-            {stockItems.slice(0, 5).map((item, index) => {
+          {/* Table Headers */}
+          <div className="grid grid-cols-3 gap-4 mb-3 px-2">
+            <div className="text-xs font-semibold text-white uppercase tracking-wider">
+              Product Name
+            </div>
+            <div className="text-xs font-semibold text-white uppercase tracking-wider">
+              Quantity Needed
+            </div>
+            <div className="text-xs font-semibold text-white uppercase tracking-wider text-right">
+              Needed By
+            </div>
+          </div>
+
+          <div className="border-t border-white/10 mb-3" />
+
+          {/* Table Rows */}
+          <div className="space-y-3 pb-1">
+            {stockItems.slice(0, 5).map((item) => {
               const isCritical = item.days <= 2;
               return (
                 <div
                   key={item.id}
-                  className={`p-3 rounded-lg border ${isCritical ? "bg-destructive/10 border-destructive/20" : "bg-secondary/50 border-white/5"}`}
+                  className={`grid grid-cols-3 gap-4 px-3 py-3.5 rounded-lg border transition-colors ${
+                    isCritical
+                      ? "bg-destructive/10 border-destructive/20"
+                      : "bg-secondary/30 border-white/5 hover:bg-secondary/50"
+                  }`}
                 >
-                  <div className="flex justify-between items-start">
-                    <div className="flex gap-3">
+                  <div className="flex items-center">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-white truncate">
+                        {item.name}
+                      </p>
+                      {isCritical && (
+                        <span className="inline-block mt-2 bg-destructive text-white text-[9px] px-1.5 py-0.5 rounded uppercase font-bold">
+                          Order Now
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center">
+                    <span className="text-sm font-semibold text-white">
+                      {item.suggestedQty} {item.unit}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-end">
+                    <div className="text-right">
                       <span
-                        className={`font-mono text-lg font-bold ${isCritical ? "text-destructive" : "text-muted-foreground"}`}
+                        className={`text-sm font-bold ${
+                          isCritical ? "text-destructive" : "text-white"
+                        }`}
                       >
-                        {index + 1}.
+                        {item.days.toFixed(1)}d
                       </span>
-                      <div>
-                        <div className="font-bold text-sm flex items-center gap-2">
-                          {item.name}
-                          {isCritical && (
-                            <span className="bg-destructive text-white text-[9px] px-1.5 py-0.5 rounded uppercase">
-                              Order Now
-                            </span>
-                          )}
-                        </div>
-                        <ul className="mt-1 space-y-0.5">
-                          <li className="text-xs text-muted-foreground flex items-center gap-1">
-                            • Stockout in{" "}
-                            <span
-                              className={
-                                isCritical
-                                  ? "text-destructive font-bold"
-                                  : "text-foreground"
-                              }
-                            >
-                              {item.days.toFixed(1)} days
-                            </span>
-                          </li>
-                          <li className="text-xs text-muted-foreground">
-                            • Suggest: {item.suggestedQty} {item.unit}
-                          </li>
-                        </ul>
-                      </div>
                     </div>
                   </div>
                 </div>
               );
             })}
             {stockItems.length === 0 && (
-              <div className="text-sm text-muted-foreground">
+              <div className="text-sm text-white/60 text-center py-4">
                 No actions required.
               </div>
             )}
@@ -434,40 +476,42 @@ export default function HomePage() {
               <div className="absolute top-full left-0 right-0 mt-1 bg-secondary border border-primary/20 rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
                 {trendView === "ingredients"
                   ? ingredients.map((ing) => (
-                    <button
-                      key={ing.id}
-                      onClick={() => handleSelectionChange(ing.id)}
-                      className={`w-full px-3 py-2 text-left text-sm hover:bg-primary/10 transition-colors ${selectedIngredient === ing.id
-                        ? "bg-primary/20 text-primary font-semibold"
-                        : "text-foreground"
+                      <button
+                        key={ing.id}
+                        onClick={() => handleSelectionChange(ing.id)}
+                        className={`w-full px-3 py-2 text-left text-sm hover:bg-primary/10 transition-colors ${
+                          selectedIngredient === ing.id
+                            ? "bg-primary/20 text-primary font-semibold"
+                            : "text-foreground"
                         }`}
-                    >
-                      {ing.name}
-                    </button>
-                  ))
+                      >
+                        {ing.name}
+                      </button>
+                    ))
                   : recipes.map((recipe) => (
-                    <button
-                      key={recipe.id}
-                      onClick={() => handleSelectionChange(recipe.id)}
-                      className={`w-full px-3 py-2 text-left text-sm hover:bg-primary/10 transition-colors ${selectedDish === recipe.id
-                        ? "bg-primary/20 text-primary font-semibold"
-                        : "text-foreground"
+                      <button
+                        key={recipe.id}
+                        onClick={() => handleSelectionChange(recipe.id)}
+                        className={`w-full px-3 py-2 text-left text-sm hover:bg-primary/10 transition-colors ${
+                          selectedDish === recipe.id
+                            ? "bg-primary/20 text-primary font-semibold"
+                            : "text-foreground"
                         }`}
-                    >
-                      {recipe.name}
-                    </button>
-                  ))}
+                      >
+                        {recipe.name}
+                      </button>
+                    ))}
               </div>
             )}
           </div>
 
           <div className="flex-1 w-full min-h-0">
-            <div className="h-full w-full bg-secondary/20 rounded-lg border border-white/5 p-4 pb-2 relative">
+            <div className="h-full w-full bg-secondary/20 rounded-lg border border-white/5 p-0 relative">
               {activeTrendData && activeTrendData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart
                     data={activeTrendData}
-                    margin={{ top: 10, right: 15, left: 35, bottom: 25 }}
+                    margin={{ top: 5, right: 10, left: 30, bottom: 20 }}
                   >
                     <defs>
                       <linearGradient
@@ -548,10 +592,11 @@ export default function HomePage() {
                 className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`max-w-[85%] rounded-lg px-3 py-2 ${msg.role === "user"
-                    ? "bg-primary/20 text-primary-foreground border border-primary/20"
-                    : "bg-secondary text-muted-foreground"
-                    } prose prose-sm prose-invert max-w-none break-words`}
+                  className={`max-w-[85%] rounded-lg px-3 py-2 ${
+                    msg.role === "user"
+                      ? "bg-primary/20 text-primary-foreground border border-primary/20"
+                      : "bg-secondary text-muted-foreground"
+                  } prose prose-sm prose-invert max-w-none break-words`}
                 >
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>
                     {msg.text}
@@ -584,68 +629,98 @@ export default function HomePage() {
 
         {/* RIGHT: FOOD FOR THOUGHT */}
         <div className="glass-card rounded-xl p-5 flex flex-col">
-          <div className="flex items-center gap-2 mb-4 text-white">
+          <div className="flex items-center gap-2 mb-3 text-white">
             <UtensilsCrossed className="h-4 w-4" />
             <h2 className="font-bold text-sm tracking-wide">
               Food for Thought (Waste Indicator)
             </h2>
           </div>
 
-          <div className="space-y-4">
-            {/* Top Waste Risk */}
-            <div className="flex items-start gap-4">
-              <div className="h-20 w-1 bg-destructive/50 rounded-full" />
-              <div className="flex-1">
-                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
-                  Top Potential Waste
+          <div className="flex gap-3 flex-1 min-h-0">
+            {/* Left Half: Top Waste & Cost */}
+            <div className="flex-1 flex flex-col gap-3">
+              <div className="bg-destructive/5 p-3 rounded-lg border border-destructive/20">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">
+                  Top Waste
                 </p>
-                <p className="text-lg font-bold text-destructive">
+                <p className="text-sm font-bold text-destructive truncate">
                   {bottomThree.length > 0 && bottomThree[0]?.name
                     ? bottomThree[0].name
                     : "N/A"}
                 </p>
-                <p className="text-xs text-muted-foreground">
-                  {bottomThree.length > 0 &&
-                    bottomThree[0]?.avgSales !== undefined &&
-                    bottomThree[0]?.margin !== undefined
-                    ? `Only ${bottomThree[0].avgSales} sold/day with ${bottomThree[0].margin}% margin`
-                    : "No data available"}
-                </p>
+              </div>
+
+              <div className="flex gap-2">
+                <div className="flex-1 bg-secondary/30 p-2.5 rounded-lg border border-white/5">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                    Total/wk
+                  </p>
+                  <p className="text-base font-bold text-foreground">
+                    $
+                    {wasteEntries
+                      .reduce((s, w) => s + w.costLost, 0)
+                      .toFixed(0)}
+                  </p>
+                </div>
               </div>
             </div>
 
-            {/* Waste Metrics */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-secondary/30 p-3 rounded-lg border border-white/5">
-                <div className="flex items-center gap-2 mb-1">
-                  <DollarSign className="h-3 w-3 text-muted-foreground" />
-                  <span className="text-[10px] uppercase text-muted-foreground">
-                    Cost of Waste
-                  </span>
+            {/* Right Half: Pie Chart */}
+            {wasteChartData.length > 0 && (
+              <div className="flex-1 flex flex-col gap-1">
+                <div className="flex-1 flex items-center justify-center min-h-0">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={wasteChartData}
+                        cx="50%"
+                        cy="40%"
+                        innerRadius={18}
+                        outerRadius={42}
+                        paddingAngle={1.5}
+                        dataKey="value"
+                      >
+                        {wasteChartData.map((_, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={WASTE_COLORS[index % WASTE_COLORS.length]}
+                          />
+                        ))}
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
                 </div>
-                <p className="text-xl font-bold text-foreground">
-                  ${wasteEntries.reduce((s, w) => s + w.costLost, 0).toFixed(0)}
-                  <span className="text-xs font-normal text-muted-foreground">
-                    /wk
-                  </span>
-                </p>
-              </div>
-              <div className="bg-secondary/30 p-3 rounded-lg border border-white/5">
-                <div className="flex items-center gap-2 mb-1">
-                  <TrendingDown className="h-3 w-3 text-muted-foreground" />
-                  <span className="text-[10px] uppercase text-muted-foreground">
-                    Trend
-                  </span>
+
+                {/* Horizontal Legend Below Pie Chart */}
+                <div className="flex flex-wrap gap-1.5 justify-center text-[9px] px-1">
+                  {wasteChartData.map((item, idx) => (
+                    <div
+                      key={item.name}
+                      className="flex items-center gap-1.5 px-2 py-0.5"
+                    >
+                      <div
+                        className="h-2 w-2 rounded-full"
+                        style={{
+                          backgroundColor:
+                            WASTE_COLORS[idx % WASTE_COLORS.length],
+                        }}
+                      />
+                      <span className="text-muted-foreground">
+                        {item.name}{" "}
+                        <span className="font-semibold text-foreground">
+                          {(
+                            (item.value /
+                              wasteChartData.reduce((s, d) => s + d.value, 0)) *
+                            100
+                          ).toFixed(0)}
+                          %
+                        </span>
+                      </span>
+                    </div>
+                  ))}
                 </div>
-                <p className="text-xl font-bold text-success">
-                  -5%
-                  <span className="text-xs font-normal text-muted-foreground">
-                    {" "}
-                    vs last wk
-                  </span>
-                </p>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
