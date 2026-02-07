@@ -14,7 +14,6 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { chatWithGemini } from "./actions";
 import { useForecast } from "@/lib/useForecast";
-import { calculateUrgency, getUrgencyMessage } from "@/lib/forecasting-helpers";
 
 // Icons from lucide-react library
 import {
@@ -45,6 +44,7 @@ import {
 } from "@/lib/data";
 
 // Chart components from recharts library
+// @ts-expect-error Cell has deprecation warning but is required for the PieChart
 import {
   AreaChart,
   Area,
@@ -54,7 +54,7 @@ import {
   Tooltip,
   PieChart,
   Pie,
-  Cell, // ADD THIS LINE
+  Cell,
 } from "recharts";
 
 // =============================================================================
@@ -289,6 +289,50 @@ export default function HomePage() {
     setChatInput("");
     setChatMessages((prev) => [...prev, { role: "user", text: userMsg }]);
 
+    // Check if user is asking for a forecast
+    const forecastKeywords = [
+      "forecast",
+      "predict",
+      "sales forecast",
+      "demand forecast",
+      "upcoming",
+    ];
+    const isForecastRequest = forecastKeywords.some((keyword) =>
+      userMsg.toLowerCase().includes(keyword),
+    );
+
+    if (isForecastRequest && selectedDish) {
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          role: "bot",
+          text: "🔮 Generating AI forecast for the next 7 days...",
+        },
+      ]);
+      try {
+        await generateForecast(selectedDish, 7);
+        setChatMessages((prev) => {
+          const history = [...prev];
+          history[history.length - 1] = {
+            role: "bot",
+            text: "📊 Forecast complete! Check the Trends section to see predictions by day. This helps you prep the right quantities and avoid waste.",
+          };
+          return history;
+        });
+      } catch (e) {
+        setChatMessages((prev) => {
+          const history = [...prev];
+          history[history.length - 1] = {
+            role: "bot",
+            text: "Sorry, I couldn't generate the forecast. Make sure you've selected a dish.",
+          };
+          return history;
+        });
+      }
+      return;
+    }
+
+    // Otherwise use Gemini AI
     setChatMessages((prev) => [
       ...prev,
       { role: "bot", text: "Consulting the inventory..." },

@@ -1,9 +1,16 @@
-// components/bottom-nav.tsx
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Home, Package, ShoppingCart, TrendingUp, ChefHat, Sparkles } from "lucide-react";
+import {
+  Home,
+  Package,
+  ShoppingCart,
+  TrendingUp,
+  ChefHat,
+  Sparkles,
+} from "lucide-react";
 
 export function BottomNav() {
   const pathname = usePathname();
@@ -13,18 +20,24 @@ export function BottomNav() {
     { href: "/inventory", label: "Inventory", icon: Package },
     { href: "/recipes", label: "Recipes", icon: ChefHat },
     { href: "/orders", label: "Orders", icon: ShoppingCart },
-    { href: "/analytics", label: "Analytics", icon: TrendingUp },
-    { href: "/wrapped", label: "Wrapped", icon: Sparkles }
+    { href: "/insights", label: "Insights", icon: TrendingUp },
+    { href: "/wrapped", label: "Wrapped", icon: Sparkles },
   ];
 
   return (
     <nav className="fixed left-0 top-0 h-screen w-56 border-r border-primary/20 bg-background/95 backdrop-blur-xl z-50">
-      {/* Logo */}
-      <div className="flex h-32 items-center gap-3 border-b border-primary/20 px-6">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/50">
-          <span className="text-xl font-bold text-primary-foreground">🌮</span>
-        </div>
-        <span className="text-xl font-bold tracking-tight">Taco Track</span>
+      {/* ⬇️ THIS IS THE SECTION YOU'RE REPLACING ⬇️ */}
+      <div className="relative h-32 w-full border-b border-primary/20 overflow-hidden">
+        <Link href="/">
+          <Image
+            src="/header.png"
+            alt="Taco Track Header"
+            fill
+            priority
+            className="object-cover"
+            style={{ objectPosition: "20% 40%" }}
+          />
+        </Link>
       </div>
 
       {/* Nav Items */}
