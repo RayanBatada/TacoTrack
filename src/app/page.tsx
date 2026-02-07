@@ -603,12 +603,12 @@ export default function HomePage() {
                     ? "Switch to Dishes view to forecast"
                     : ""
                 }
-                className={`ml-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                className={`ml-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border-2 border-white/30 ${
                   trendView === "ingredients"
                     ? "bg-secondary/30 text-muted-foreground cursor-not-allowed opacity-50"
                     : forecastLoading
                       ? "bg-primary/50 text-white cursor-wait"
-                      : "bg-primary text-white hover:bg-primary/90"
+                      : "bg-primary text-white hover:bg-primary/90 hover:border-white/60"
                 }`}
               >
                 {forecastLoading ? "🔮 Forecasting..." : "🔮 AI Forecast"}
