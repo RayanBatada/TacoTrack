@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Package,
   UtensilsCrossed,
@@ -13,13 +13,17 @@ import {
   TreePine,
 } from "lucide-react";
 import {
-  ingredients,
-  recipes,
+  getRecipes,
+  getIngredients,
+  getWasteEntries,
   daysOfStock,
   avgDailyUsage,
   foodCostPercent,
   salesTrendData,
   topSellingItems,
+  type Recipe,
+  type Ingredient,
+  type WasteEntry,
 } from "@/lib/data";
 import {
   AreaChart,
@@ -42,6 +46,10 @@ export default function HomePage() {
   const [chatInput, setChatInput] = useState("");
   const [selectedIngredient, setSelectedIngredient] = useState<string | null>(null);
   const [selectedDish, setSelectedDish] = useState<string | null>(null);
+  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [wasteEntries, setWasteEntries] = useState<WasteEntry[]>([]);
+  const [loading, setLoading] = useState(true);
   const [chatMessages, setChatMessages] = useState<
     { role: "user" | "bot"; text: string }[]
   >([
@@ -50,6 +58,27 @@ export default function HomePage() {
       text: "Hola! I'm Taco Bot. 🌮 specialized in spicy inventory management. How can I help?",
     },
   ]);
+
+  // Fetch data from database on mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [ing, rec, waste] = await Promise.all([
+          getIngredients(),
+          getRecipes(),
+          getWasteEntries(),
+        ]);
+        setIngredients(ing);
+        setRecipes(rec);
+        setWasteEntries(waste);
+      } catch (error) {
+        console.error("Error loading data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
 
   // Ingredient usage trend data (aggregate all ingredients, last 14 days)
   const ingredientTrendData = Array.from({ length: 14 }, (_, i) => {
@@ -70,11 +99,11 @@ export default function HomePage() {
       "Sun",
     ];
     const totalUsage = ingredients.reduce(
-      (sum, ing) => sum + (ing.dailyUsage[i] || 0),
+      (sum, ing) => sum + (ing.dailyUsage?.[i] || 0),
       0
     );
     const totalValue = ingredients.reduce(
-      (sum, ing) => sum + (ing.dailyUsage[i] || 0) * ing.costPerUnit,
+      (sum, ing) => sum + ((ing.dailyUsage?.[i] || 0) * ing.costPerUnit),
       0
     );
     return {
@@ -86,7 +115,7 @@ export default function HomePage() {
 
   // Calculate chart data based on selection
   const activeIngredientData = selectedIngredient
-    ? ingredients.find(i => i.id === selectedIngredient)?.dailyUsage.map((usage, i) => {
+    ? (ingredients.find(i => i.id === selectedIngredient)?.dailyUsage || []).map((usage, i) => {
       const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
       return {
         day: dayNames[i],
@@ -110,11 +139,11 @@ export default function HomePage() {
       : 0;
 
   // Dish sales trend data
-  const salesData = salesTrendData(); // Aggregate
+  const salesData = salesTrendData(recipes); // Aggregate
 
   // Custom dish data if selected
   const activeDishData = selectedDish
-    ? recipes.find(r => r.id === selectedDish)?.dailySales.map((sales, i) => {
+    ? ((recipes.find(r => r.id === selectedDish)?.dailySales) || []).map((sales, i) => {
       const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
       const r = recipes.find(item => item.id === selectedDish);
       return {
@@ -122,7 +151,7 @@ export default function HomePage() {
         sales: sales,
         revenue: Math.round(sales * (r?.sellPrice || 0))
       };
-    }) || []
+    })
     : salesData.map((d) => ({
       day: d.day,
       sales: d.sales,
@@ -146,7 +175,7 @@ export default function HomePage() {
   const dishTrendData = activeDishData;
 
   // Top & bottom performing items
-  const topSellers = topSellingItems();
+  const topSellers = topSellingItems(recipes, ingredients);
   const topThree = topSellers.slice(0, 3);
   const bottomThree = topSellers.slice(-3).reverse();
 
@@ -155,7 +184,7 @@ export default function HomePage() {
     .map((i) => ({
       ...i,
       days: daysOfStock(i),
-      avgUsage: avgDailyUsage(i.dailyUsage),
+      avgUsage: avgDailyUsage(i.dailyUsage || []),
     }))
     .sort((a, b) => a.days - b.days);
 
@@ -187,7 +216,7 @@ export default function HomePage() {
           : "All stock levels look manageable. Check Orders for recommended restocking.";
       } else if (q.includes("cost") || q.includes("margin")) {
         const avgCost = Math.round(
-          recipes.reduce((s, r) => s + foodCostPercent(r), 0) / recipes.length
+          recipes.reduce((s, r) => s + foodCostPercent(r, ingredients), 0) / recipes.length
         );
         response = `Average food cost is ${avgCost}%. ${avgCost > 30 ? "That's above the 30% target — review high-cost recipes." : "You're within the 30% target."}`;
       }
@@ -211,7 +240,7 @@ export default function HomePage() {
           <QuickPill label="This Week Sales" value={`${thisWeekTotal}`} color="text-success" />
           <QuickPill
             label="Avg Food Cost"
-            value={`${Math.round(recipes.reduce((s, r) => s + foodCostPercent(r), 0) / recipes.length)}%`}
+            value={`${Math.round(recipes.reduce((s, r) => s + foodCostPercent(r, ingredients), 0) / recipes.length)}%`}
             color="text-primary"
           />
         </div>

@@ -1,25 +1,29 @@
 "use client";
 
-import { recipes, ingredients, wasteEntries } from "@/lib/data";
+import { getRecipes, getIngredients, getWasteEntries, type Recipe, type Ingredient, type WasteEntry } from "@/lib/data-db";
 import { useState, useEffect } from "react";
 import { ArrowRight, Download, Share2, ChevronDown } from "lucide-react";
 
 interface WrappedStats {
   totalDishesServed: number;
-  topDish: typeof recipes[0];
+  topDish: Recipe;
   topDishSales: number;
   totalRevenue: number;
   totalWaste: number;
   bestDay: string;
   bestDayRevenue: number;
-  mostUsedIngredient: typeof ingredients[0];
-  trendingUp: typeof recipes[0][];
-  topThreeDishes: Array<typeof recipes[0] & { sales: number }>;
+  mostUsedIngredient: Ingredient;
+  trendingUp: Recipe[];
+  topThreeDishes: Array<Recipe & { sales: number }>;
   wasteReduction: number;
   avgFoodCost: number;
 }
 
-function calculateStats(): WrappedStats {
+function calculateStats(
+  recipes: Recipe[],
+  ingredients: Ingredient[],
+  wasteEntries: WasteEntry[]
+): WrappedStats {
   // Calculate total dishes served (sum of all sales from recipes)
   const totalDishesServed = recipes.reduce((sum, recipe) => {
     return sum + recipe.dailySales.reduce((a, b) => a + b, 0);
@@ -121,7 +125,20 @@ export default function WrappedPage() {
   const [currentSlide, setCurrentSlide] = useState(0);
 
   useEffect(() => {
-    setStats(calculateStats());
+    const loadStats = async () => {
+      try {
+        const [recipesData, ingredientsData, wasteData] = await Promise.all([
+          getRecipes(),
+          getIngredients(),
+          getWasteEntries(),
+        ]);
+        setStats(calculateStats(recipesData, ingredientsData, wasteData));
+      } catch (error) {
+        console.error("Error loading wrapped stats:", error);
+      }
+    };
+    
+    loadStats();
   }, []);
 
   // Keyboard navigation
