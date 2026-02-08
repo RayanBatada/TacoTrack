@@ -236,7 +236,7 @@ export default function InsightsPage() {
   const wasteTopCategory = wasteData.length > 0 ? wasteData.sort((a, b) => b.cost - a.cost)[0] : null;
   const topSellerName = topSellers[0]?.name || "N/A";
   const topSellerMargin = topSellers[0]?.margin || 0;
-  const topSellerSales = topSellers[0]?.sales || 0;
+  const topSellerSales = topSellers[0]?.avgSales || 0;
 
   // FORECAST PROCESSING - Same logic as dashboard
   const forecastChartData = forecasts
@@ -500,9 +500,9 @@ export default function InsightsPage() {
         title="Margin Analysis"
         insight={`${lowestMarginDish?.name || "This item"} has the lowest margin at ${lowestMarginDish?.margin || 0}% — review recipe costs and pricing.`}
       >
-        <div className="h-36">
+        <div className="h-48">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={marginData} layout="vertical">
+            <BarChart data={marginData} layout="vertical" margin={{ left: 100, right: 20, top: 5, bottom: 5 }}>
               <XAxis
                 type="number"
                 tick={{ fontSize: 10, fill: "#d8b4fe" }}
@@ -516,7 +516,7 @@ export default function InsightsPage() {
                 tick={{ fontSize: 10, fill: "#d8b4fe" }}
                 axisLine={false}
                 tickLine={false}
-                width={80}
+                width={95}
               />
               <Tooltip contentStyle={tooltipStyle} />
               <Bar
@@ -546,7 +546,7 @@ export default function InsightsPage() {
                     cy="50%"
                     innerRadius={30}
                     outerRadius={55}
-                    paddingAngle={3}
+                    paddingAngle={0}
                     dataKey="cost"
                   >
                     {wasteData.map((_, i) => (
@@ -594,7 +594,7 @@ export default function InsightsPage() {
                 </div>
                 <div className="text-right shrink-0">
                   <span className="text-sm font-semibold">
-                    {item.sales}/day
+                    {item.avgSales}/day
                   </span>
                   <p className="text-[10px] text-success">
                     {item.margin}% margin

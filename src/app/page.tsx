@@ -972,7 +972,7 @@ export default function HomePage() {
                         cy="50%"
                         innerRadius={32}
                         outerRadius={62}
-                        paddingAngle={2}
+                        paddingAngle={0}
                         dataKey="value"
                         isAnimationActive={false}
                         stroke="#ffffff"
