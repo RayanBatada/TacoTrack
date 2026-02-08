@@ -33,13 +33,9 @@ export default function LandingPage() {
 
   const handleEnterDashboard = async () => {
     setIsZooming(true);
-    
+
     // Fire prefetch in background without awaiting (non-blocking)
-    Promise.all([
-      getRecipes(),
-      getIngredients(),
-      getWasteEntries(),
-    ])
+    Promise.all([getRecipes(), getIngredients(), getWasteEntries()])
       .then(([recipes]) => {
         // Prefetch forecast for first dish - don't await
         if (recipes && recipes.length > 0) {
@@ -51,7 +47,7 @@ export default function LandingPage() {
       .catch(() => {
         // Silently fail prefetch
       });
-    
+
     // Navigation always happens after 1200ms regardless of prefetch status
     setTimeout(() => {
       router.push("/dashboard");
@@ -177,31 +173,30 @@ export default function LandingPage() {
                 🏆 Innovation • Feasibility • Impact
               </div>
             </motion.div>
-          </motion.div>
 
-          {/* Scroll hint */}
-          {showScrollHint && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ delay: 1.5 }}
-              className="absolute bottom-20 left-1/2 -translate-x-1/2"
-            >
+            {/* Scroll hint - below badge */}
+            {showScrollHint && (
               <motion.div
-                animate={{ y: [0, 10, 0] }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-                className="flex flex-col items-center gap-2 text-white/60"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1.5 }}
+                className="mt-8"
               >
-                <span className="text-sm font-medium">Scroll to explore</span>
-                <ChevronDown className="h-6 w-6" />
+                <motion.div
+                  animate={{ y: [0, 10, 0] }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                  className="flex flex-col items-center gap-2 text-white/60"
+                >
+                  <span className="text-sm font-medium">Scroll to explore</span>
+                  <ChevronDown className="h-6 w-6" />
+                </motion.div>
               </motion.div>
-            </motion.div>
-          )}
+            )}
+          </motion.div>
         </div>
       </section>
 
