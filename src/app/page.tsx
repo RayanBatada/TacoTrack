@@ -747,7 +747,7 @@ export default function HomePage() {
             <div className="flex-1 w-full min-h-0">
               {showForecast && forecast.length > 0 ? (
                 // SHOW FORECAST RESULTS WITH ANIMATION
-                <div className="h-full w-full bg-secondary/20 rounded-lg border border-white/5 p-0 relative">
+                <div className="h-full w-full bg-secondary/20 rounded-lg border border-white/5 p-0 relative overflow-hidden">
                   <div className="absolute top-3 right-3 z-10">
                     <button
                       onClick={() => setShowForecast(false)}
@@ -783,7 +783,7 @@ export default function HomePage() {
                             confidence: f.confidence,
                           };
                         })}
-                      margin={{ top: 20, right: 10, left: 0, bottom: 20 }}
+                      margin={{ top: 40, right: 5, left: 5, bottom: 10 }}
                     >
                       <defs>
                         <linearGradient
@@ -816,7 +816,8 @@ export default function HomePage() {
                         tick={{ fontSize: 10, fill: "#a1a1aa" }}
                         axisLine={false}
                         tickLine={false}
-                        width={30}
+                        width={40}
+                        domain={[0, Math.max(140, ...forecast.filter(f => isFinite(f.predicted_quantity)).map(f => f.predicted_quantity || 0)) * 1.1]}
                       />
                       <Tooltip
                         content={({ active, payload }) => {
@@ -855,7 +856,7 @@ export default function HomePage() {
                         stroke="#22d3ee"
                         strokeWidth={3}
                         fill="url(#forecastGrad)"
-                        animationDuration={0}
+                        animationDuration={500}
                         dot={{ r: 4, fill: "#22d3ee", strokeWidth: 0 }}
                         activeDot={{
                           r: 6,
@@ -863,12 +864,13 @@ export default function HomePage() {
                           stroke: "#22d3ee",
                           strokeWidth: 2,
                         }}
+                        isAnimationActive={true}
                       />
                     </AreaChart>
                   </ResponsiveContainer>
 
                   {/* Live Prediction Overlay Badge */}
-                  <div className="absolute top-3 left-3 flex items-center gap-2 pointer-events-none">
+                  <div className="absolute top-3 left-12 flex items-center gap-2 pointer-events-none">
                     <span className="relative flex h-3 w-3">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
                       <span className="relative inline-flex rounded-full h-3 w-3 bg-cyan-500"></span>
@@ -886,7 +888,7 @@ export default function HomePage() {
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart
                         data={activeTrendData}
-                        margin={{ top: 5, right: 10, left: 30, bottom: 20 }}
+                        margin={{ top: 40, right: 5, left: 5, bottom: 10 }}
                       >
                         <defs>
                           <linearGradient
@@ -923,7 +925,7 @@ export default function HomePage() {
                           tick={{ fontSize: 10, fill: "#a1a1aa" }}
                           axisLine={false}
                           tickLine={false}
-                          width={30}
+                          width={40}
                         />
 
                         <Tooltip
