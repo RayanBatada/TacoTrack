@@ -142,10 +142,33 @@ export default function HomePage() {
   useEffect(() => {
     const interval = setInterval(() => {
       setAnimationFrame((prev) => (prev + 1) % 3);
-    }, 600); // 600ms per frame = ~1.8s full cycle (slow animation)
-
+    }, 600);
     return () => clearInterval(interval);
   }, []);
+
+  // ADD THIS NEW useEffect - Forecast line animation
+  useEffect(() => {
+    if (showForecast && forecast.length > 0) {
+      setForecastAnimProgress(0);
+
+      const duration = 2000;
+      const steps = 60;
+      const interval = duration / steps;
+      let currentStep = 0;
+
+      const animationInterval = setInterval(() => {
+        currentStep++;
+        setForecastAnimProgress(currentStep / steps);
+
+        if (currentStep >= steps) {
+          clearInterval(animationInterval);
+          setForecastAnimProgress(1);
+        }
+      }, interval);
+
+      return () => clearInterval(animationInterval);
+    }
+  }, [showForecast, forecast]);
 
   // ===========================================================================
   // FETCH DATA ON PAGE LOAD - Get all data from database
@@ -1056,7 +1079,7 @@ export default function HomePage() {
                           cy="50%"
                           innerRadius={32}
                           outerRadius={62}
-                          paddingAngle={2}
+                          paddingAngle={0}
                           dataKey="value"
                           isAnimationActive={false}
                           stroke="#ffffff"
