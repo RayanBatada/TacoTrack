@@ -161,7 +161,7 @@ export async function getIngredients(): Promise<Ingredient[]> {
         vendor: ing.vendor,
         storageLocation: ing.storage_location,
         leadTimeDays: ing.lead_time_days,
-        expiryDate: getExpiryDate(ing),
+        expiryDate: ing.expiry_date || getExpiryDate(ing), // Use actual expiry or estimate
         dailyUsage,
       };
     })
