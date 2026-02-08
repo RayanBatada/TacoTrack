@@ -225,7 +225,7 @@ export default function InsightsPage() {
 
   const marginData = recipes
     .map((r) => ({
-      name: r.name.length > 12 ? r.name.slice(0, 12) + "..." : r.name,
+      name: r.name.length > 28 ? r.name.slice(0, 28) + "..." : r.name,
       margin: 100 - foodCostPercent(r, ingredients),
       cost: foodCostPercent(r, ingredients),
     }))
@@ -500,9 +500,9 @@ export default function InsightsPage() {
         title="Margin Analysis"
         insight={`${lowestMarginDish?.name || "This item"} has the lowest margin at ${lowestMarginDish?.margin || 0}% — review recipe costs and pricing.`}
       >
-        <div className="h-48">
+        <div className="h-56 flex items-center justify-center">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={marginData} layout="vertical" margin={{ left: 100, right: 20, top: 5, bottom: 5 }}>
+            <BarChart data={marginData} layout="vertical" margin={{ left: 200, right: 200, top: 5, bottom: 5 }}>
               <XAxis
                 type="number"
                 tick={{ fontSize: 10, fill: "#d8b4fe" }}
@@ -513,10 +513,10 @@ export default function InsightsPage() {
               <YAxis
                 dataKey="name"
                 type="category"
-                tick={{ fontSize: 10, fill: "#d8b4fe" }}
+                tick={{ fontSize: 9, fill: "#d8b4fe" }}
                 axisLine={false}
                 tickLine={false}
-                width={95}
+                width={190}
               />
               <Tooltip contentStyle={tooltipStyle} />
               <Bar
