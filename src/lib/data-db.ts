@@ -194,4 +194,103 @@ async function calculateDailyUsageForIngredient(ingredientId: string): Promise<n
     });
 
   if (recipesWithIngredient.length === 0) {
-    return [0, 0, 0, 0, 0, 0, 0]
+    return [0, 0, 0, 0, 0, 0, 0];
+  }
+
+  const fourWeeksAgo = new Date();
+  fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
+
+  const { data: salesData } = await supabase
+    .from('sales_events')
+    .select('recipe_id, quantity, sold_at')
+    .in('recipe_id', recipesWithIngredient.map(r => r.recipe_id))
+    .gte('sold_at', fourWeeksAgo.toISOString());
+
+  const usageByDate: Record<string, number> = {};
+
+  (salesData || []).forEach(sale => {
+    const recipeLink = recipesWithIngredient.find(r => r.recipe_id === sale.recipe_id);
+    if (recipeLink) {
+      const dateKey = sale.sold_at.split('T')[0];
+      const ingredientUsed = sale.quantity * recipeLink.quantity;
+      usageByDate[dateKey] = (usageByDate[dateKey] || 0) + ingredientUsed;
+    }
+  });
+
+  const dailyTotalsByDow: Record<number, number[]> = {
+    0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: []
+  };
+
+  Object.entries(usageByDate).forEach(([dateStr, total]) => {
+    const date = new Date(dateStr);
+    const dow = date.getDay();
+    dailyTotalsByDow[dow].push(total);
+  });
+
+  return [0, 1, 2, 3, 4, 5, 6].map(day => {
+    const dailyTotals = dailyTotalsByDow[day];
+    if (dailyTotals.length === 0) return 0;
+    const sum = dailyTotals.reduce((a, b) => a + b, 0);
+    return sum / dailyTotals.length;
+  });
+}
+
+function getExpiryDate(ing: any): string {
+  const today = new Date();
+  const daysToAdd = ing.category === 'produce' ? 7 :
+    ing.category === 'protein' ? 5 :
+      ing.category === 'dairy' ? 14 : 30;
+
+  today.setDate(today.getDate() + daysToAdd);
+  return today.toISOString().split('T')[0];
+}
+
+// =============================================================================
+// FETCH ORDERS
+// =============================================================================
+export async function getOrders(): Promise<Order[]> {
+  const { data, error } = await supabase
+    .from('orders')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(20);
+
+  if (error) {
+    console.error('Error fetching orders:', error);
+    return [];
+  }
+
+  return (data || []).map(o => ({
+    id: o.id,
+    vendor: o.vendor,
+    items: o.items || [],
+    status: o.status,
+    deliveryDate: o.delivery_date,
+    totalCost: o.total_cost || 0,
+  }));
+}
+
+// =============================================================================
+// FETCH WASTE ENTRIES
+// =============================================================================
+export async function getWasteEntries(): Promise<WasteEntry[]> {
+  const { data, error } = await supabase
+    .from('waste_entries')
+    .select('*')
+    .order('date', { ascending: false })
+    .limit(100);
+
+  if (error) {
+    console.error('Error fetching waste:', error);
+    return [];
+  }
+
+  return (data || []).map(w => ({
+    id: w.id,
+    ingredientId: w.ingredient_id,
+    qty: w.qty,
+    reason: w.reason,
+    date: w.date,
+    costLost: w.cost_lost || 0,
+  }));
+}

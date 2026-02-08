@@ -22,10 +22,10 @@ export async function GET(request: Request) {
 
       const { data } = await supabase
         .from("sales_events")
-        .select("id, recipe_id, quantity, sold_at")
+        .select("id, recipe_id, quantity, sale_timestamp")
         .eq("recipe_id", recipeId)
-        .gte("sold_at", fromDate.toISOString())
-        .order("sold_at", { ascending: false })
+        .gte("sale_timestamp", fromDate.toISOString())
+        .order("sale_timestamp", { ascending: false })
         .limit(100);
 
       recentSales = data || [];
@@ -38,7 +38,7 @@ export async function GET(request: Request) {
     const { data: salesByRecipe } = await supabase
       .from("sales_events")
       .select("recipe_id, quantity")
-      .gte("sold_at", fourWeeksAgo.toISOString());
+      .gte("sale_timestamp", fourWeeksAgo.toISOString());
 
     const recipeSummary: Record<string, number> = {};
     (salesByRecipe || []).forEach((sale) => {
@@ -75,7 +75,7 @@ export async function POST(request: Request) {
         id: body.id || crypto.randomUUID(),
         recipe_id: body.recipe_id,
         quantity: body.quantity,
-        sold_at: body.sold_at || new Date().toISOString(),
+        sale_timestamp: body.sale_timestamp || new Date().toISOString(),
       }])
       .select();
 

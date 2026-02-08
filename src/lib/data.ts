@@ -4,10 +4,6 @@ export { getRecipes, getIngredients, getOrders, getWasteEntries } from "@/lib/da
 
 import type { Ingredient, Recipe } from "@/lib/data-db";
 
-// Export empty arrays for backward compatibility
-export const ingredients: Ingredient[] = [];
-export const recipes: Recipe[] = [];
-
 // ==========================================
 // Helper Functions (work with passed-in data)
 // ==========================================
@@ -73,7 +69,50 @@ export function topSellingItems(recipes: Recipe[], ingredients: Ingredient[]): {
     .sort((a, b) => b.avgSales - a.avgSales);
 }
 
-// Chart helpers
+export function dishesWeCanMake(recipes: Recipe[], ingredients: Ingredient[]): { recipeId: string; name: string; canMake: number; limitingIngredient: string }[] {
+  return recipes.map((recipe) => {
+    let minBatches = Infinity;
+    let limitingIngredient = "";
+
+    for (const ri of recipe.ingredients) {
+      const ing = ingredients.find((i) => i.id === ri.ingredientId);
+      if (!ing) continue;
+
+      const batchesPossible = Math.floor(ing.onHand / ri.qty);
+      if (batchesPossible < minBatches) {
+        minBatches = batchesPossible;
+        limitingIngredient = ing.name;
+      }
+    }
+
+    return {
+      recipeId: recipe.id,
+      name: recipe.name,
+      canMake: minBatches === Infinity ? 0 : minBatches,
+      limitingIngredient,
+    };
+  });
+}
+
+export function burndownData(ingredient: Ingredient): { day: string; stock: number }[] {
+  const avg = avgDailyUsage(ingredient.dailyUsage);
+  const days = ["Today", "Day 2", "Day 3", "Day 4", "Day 5", "Day 6", "Day 7"];
+  let stock = ingredient.onHand;
+  return days.map((day) => {
+    const point = { day, stock: Math.max(0, Math.round(stock * 10) / 10) };
+    stock -= avg;
+    return point;
+  });
+}
+
+export function weeklyUsageData(ingredient: Ingredient): { day: string; usage: number }[] {
+  const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  return ingredient.dailyUsage.slice(-7).map((usage: number, i: number) => ({
+    day: dayNames[i],
+    usage,
+  }));
+}
+
 export function salesTrendData(recipes: Recipe[]): { day: string; sales: number; revenue: number; lastWeek: number }[] {
   const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
   
