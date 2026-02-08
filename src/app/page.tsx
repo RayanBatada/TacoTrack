@@ -119,6 +119,9 @@ export default function HomePage() {
   // FULLSCREEN CHAT STATE
   const [isChatFullscreen, setIsChatFullscreen] = useState(false);
 
+  // ANIMATION STATE FOR AI CHARACTER
+  const [animationFrame, setAnimationFrame] = useState(0);
+
   // REFERENCE FOR AUTO-SCROLLING CHAT
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -132,6 +135,17 @@ export default function HomePage() {
   useEffect(() => {
     scrollToBottom();
   }, [chatMessages]);
+
+  // ===========================================================================
+  // ANIMATION LOOP - Cycle through character frames slowly
+  // ===========================================================================
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setAnimationFrame((prev) => (prev + 1) % 3);
+    }, 600); // 600ms per frame = ~1.8s full cycle (slow animation)
+    
+    return () => clearInterval(interval);
+  }, []);
 
   // ===========================================================================
   // FETCH DATA ON PAGE LOAD - Get all data from database
@@ -462,8 +476,23 @@ export default function HomePage() {
             {chatMessages.map((msg, i) => (
               <div
                 key={i}
-                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                className={`flex items-center ${msg.role === "user" ? "justify-end" : "justify-start"} gap-3`}
               >
+                {msg.role === "bot" && (
+                  <div className="w-10 h-10 flex-shrink-0">
+                    <img
+                      src={
+                        animationFrame === 0
+                          ? "/BellFrame1.png"
+                          : animationFrame === 1
+                            ? "/BellFrame2.png"
+                            : "/BellFrame3.png"
+                      }
+                      alt="Taco Talk"
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                )}
                 <div
                   className={`max-w-[70%] rounded-lg px-3 py-2 ${msg.role === "user" ? "bg-primary/20 text-primary-foreground border border-primary/20" : "bg-secondary text-muted-foreground"} prose prose-sm prose-invert max-w-none break-words`}
                 >
@@ -845,10 +874,25 @@ export default function HomePage() {
             {chatMessages.map((msg, i) => (
               <div
                 key={i}
-                className={`flex ${
+                className={`flex items-center ${
                   msg.role === "user" ? "justify-end" : "justify-start"
-                }`}
+                } gap-3`}
               >
+                {msg.role === "bot" && (
+                  <div className="w-10 h-10 flex-shrink-0">
+                    <img
+                      src={
+                        animationFrame === 0
+                          ? "/BellFrame1.png"
+                          : animationFrame === 1
+                            ? "/BellFrame2.png"
+                            : "/BellFrame3.png"
+                      }
+                      alt="Taco Talk"
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                )}
                 <div
                   className={`max-w-[85%] rounded-lg px-3 py-2 ${
                     msg.role === "user"
