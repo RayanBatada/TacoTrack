@@ -219,7 +219,6 @@ export default function InventoryPage() {
                   <span className="text-xs text-muted-foreground">
                     {item.onHand} {item.unit}
                   </span>
-                  <span className="text-muted-foreground">·</span>
                   <span className="text-xs text-muted-foreground">
                     {item.storageLocation}
                   </span>
