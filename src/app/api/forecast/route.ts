@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { supabase } from "@/lib/supabase";
+import { calculateDailySalesForRecipe } from "@/lib/data-db";
 
 export const dynamic = "force-dynamic";
 
@@ -10,10 +12,10 @@ export async function POST(request: Request) {
 
     console.log(`📊 Generating forecast for recipe: ${recipeId}`);
 
-    // 1. Get recipe with sales data
+    // 1. Get recipe basic info
     const { data: recipe, error: recipeError } = await supabase
       .from("recipes")
-      .select("id, name, daily_sales")
+      .select("id, name")
       .eq("id", recipeId)
       .single();
 
@@ -25,38 +27,68 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2. Calculate forecasts
-    const dailySales = recipe.daily_sales || [0, 0, 0, 0, 0, 0, 0];
+    // 2. Calculate forecasts using Gemini
+    const dailySales = await calculateDailySalesForRecipe(recipeId);
     const avgSales = dailySales.reduce((a: number, b: number) => a + b, 0) / dailySales.length;
 
-    const forecasts = [];
+    // Hardcoded context (same as actions.ts for now)
+    const UGA_HOME_GAMES_2025 = [
+      "2025-08-30", "2025-09-06", "2025-09-27",
+      "2025-10-04", "2025-10-18", "2025-11-15", "2025-11-22"
+    ];
+
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
+    // Prepare dates for the next 7 days
+    const datesToForecast = [];
     for (let i = 1; i <= forecastDays; i++) {
-      const forecastDate = new Date(today);
-      forecastDate.setDate(today.getDate() + i);
-
-      const dayOfWeek = forecastDate.getDay();
-      const historicalSales = dailySales[dayOfWeek] || avgSales;
-      const variance = 0.85 + Math.random() * 0.3;
-      const predicted = Math.round(historicalSales * variance);
-
-      const stdDev = Math.sqrt(
-        dailySales.reduce((sum: number, val: number) => sum + Math.pow(val - avgSales, 2), 0) / dailySales.length
-      );
-      const confidence = stdDev < avgSales * 0.2 ? "high" : stdDev < avgSales * 0.4 ? "medium" : "low";
-
-      forecasts.push({
-        id: `${recipeId}-${forecastDate.toISOString().split("T")[0]}`,
-        recipe_id: recipeId,
-        dish_name: recipe.name,
-        predicted_quantity: predicted,
-        date: forecastDate.toISOString().split("T")[0],
-        confidence,
-        created_at: new Date().toISOString(),
-      });
+      const d = new Date(today);
+      d.setDate(today.getDate() + i);
+      datesToForecast.push(d.toISOString().split('T')[0]);
     }
+
+    const prompt = `
+        You are an expert restaurant inventory planner. 
+        Predict sales for "${recipe.name}" for the next ${forecastDays} days.
+        
+        CONTEXT:
+        - Average Daily Sales: ${Math.round(avgSales)} units
+        - Sales Pattern (Sun-Sat): ${JSON.stringify(dailySales)}
+        - Today: ${today.toISOString().split('T')[0]}
+        - Upcoming Games: ${JSON.stringify(UGA_HOME_GAMES_2025)}
+        - Weather: Assume seasonal norms (Sunny/Warm).
+        
+        INSTRUCTIONS:
+        1. Analyze the day of the week and any game days.
+        2. Game days = +50-100% volume. Fridays before games = +30% volume.
+        3. Return a raw JSON array (NO MARKDOWN) with objects:
+           { "date": "YYYY-MM-DD", "predicted_quantity": number, "confidence": "high"|"medium"|"low" }
+        4. Dates to cover: ${JSON.stringify(datesToForecast)}
+    `;
+
+    // Initialize Gemini
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+    const model = genAI.getGenerativeModel({ model: "gemma-3-27b-it" });
+
+    const result = await model.generateContent(prompt);
+    const responseText = result.response.text().replace(/```json|```/g, '').trim();
+
+    let aiForecasts = [];
+    try {
+      aiForecasts = JSON.parse(responseText);
+    } catch (e) {
+      console.error("Failed to parse Gemini response:", responseText);
+      throw new Error("AI returned invalid JSON");
+    }
+
+    const forecasts = aiForecasts.map((f: any) => ({
+      id: `${recipeId}-${f.date}`,
+      recipe_id: recipeId,
+      dish_name: recipe.name,
+      predicted_quantity: f.predicted_quantity,
+      date: f.date,
+      confidence: f.confidence,
+      created_at: new Date().toISOString(),
+    }));
 
     console.log(`💾 Saving ${forecasts.length} forecasts to database...`);
 
