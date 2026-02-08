@@ -264,18 +264,13 @@ export default function IngredientDetailPage({
         <DetailRow
           icon={<MapPin className="h-4 w-4 text-[#8888a0]" />}
           label="Storage"
-          value={ingredient.storageLocation}
+          value={ingredient.storageLocation || "N/A"}
         />
         <DetailRow
           icon={<Calendar className="h-4 w-4 text-[#8888a0]" />}
           label="Expires"
           value={`${ingredient.expiryDate} (${expDays}d)`}
           valueColor={expDays <= 2 ? "#ef4444" : expDays <= 4 ? "#fbbf24" : undefined}
-        />
-        <DetailRow
-          icon={<Truck className="h-4 w-4 text-[#8888a0]" />}
-          label="Last Delivery"
-          value={ingredient.lastDelivery}
         />
         <DetailRow
           icon={<Clock className="h-4 w-4 text-[#8888a0]" />}

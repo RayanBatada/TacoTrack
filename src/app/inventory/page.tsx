@@ -10,6 +10,7 @@ import {
   ChefHat,
   ArrowUp,
   ArrowDown,
+  X,
 } from "lucide-react";
 import {
   getIngredients,
@@ -26,6 +27,8 @@ type ViewMode = "ingredients" | "dishes";
 type SortMode = "urgency" | "expiry" | "quantity";
 type SortOrder = "asc" | "desc";
 
+type DishWithMake = Recipe & { canMake: number; limitingIngredient: string };
+
 export default function InventoryPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("ingredients");
   const [search, setSearch] = useState("");
@@ -34,6 +37,8 @@ export default function InventoryPage() {
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedDish, setSelectedDish] = useState<DishWithMake | null>(null);
+  const [showDishModal, setShowDishModal] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -194,7 +199,7 @@ export default function InventoryPage() {
         <div className="space-y-2">
           {items.map((item, i) => (
             <Link
-              key={item.id}
+              key={item.id || `item-${i}`}
               href={`/inventory/${item.id}`}
               className="glass-card flex items-center gap-3 rounded-xl p-3.5 transition-all active:scale-[0.98] hover:bg-secondary/50"
               style={{
@@ -247,10 +252,13 @@ export default function InventoryPage() {
       ) : (
         <div className="space-y-2">
           {dishes.map((dish, i) => (
-            <Link
-              key={dish.recipeId}
-              href={`/recipes/${dish.recipeId}`}
-              className="glass-card flex items-center gap-3 rounded-xl p-3.5 transition-all active:scale-[0.98] hover:bg-secondary/50"
+            <button
+              key={dish.id || `dish-${i}`}
+              onClick={() => {
+                setSelectedDish(dish);
+                setShowDishModal(true);
+              }}
+              className="glass-card flex w-full items-center gap-3 rounded-xl p-3.5 transition-all active:scale-[0.98] hover:bg-secondary/50 text-left"
               style={{
                 opacity: 0,
                 animation: `float-up 0.3s ease-out ${i * 0.04}s forwards`,
@@ -291,7 +299,7 @@ export default function InventoryPage() {
               </div>
 
               <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-            </Link>
+            </button>
           ))}
           {dishes.length === 0 && (
             <div className="py-12 text-center">
@@ -301,6 +309,93 @@ export default function InventoryPage() {
               </p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Dish Modal */}
+      {showDishModal && selectedDish && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="glass-card max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl p-6 shadow-xl">
+            {/* Close button */}
+            <div className="mb-5 flex items-start justify-between">
+              <div>
+                <h2 className="text-2xl font-bold">{selectedDish.name || "Unknown Dish"}</h2>
+                <p className="mt-1 text-sm text-muted-foreground uppercase tracking-wider">
+                  {selectedDish.category || "Uncategorized"}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowDishModal(false)}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Key metrics */}
+            <div className="mb-5 grid grid-cols-3 gap-3">
+              <div className="rounded-lg bg-secondary/50 p-3 text-center">
+                <p className="text-xs text-muted-foreground">Price</p>
+                <p className="mt-1 font-bold text-success">
+                  ${(selectedDish.sellPrice || 0).toFixed(2)}
+                </p>
+              </div>
+              <div className="rounded-lg bg-secondary/50 p-3 text-center">
+                <p className="text-xs text-muted-foreground">Can Make</p>
+                <p className="mt-1 font-bold text-primary">
+                  {selectedDish.canMake}
+                </p>
+              </div>
+              <div className="rounded-lg bg-secondary/50 p-3 text-center">
+                <p className="text-xs text-muted-foreground">Yield</p>
+                <p className="mt-1 font-bold">
+                  {Math.round((selectedDish.yieldPercent || 100))}%
+                </p>
+              </div>
+            </div>
+
+            {/* Limiting ingredient */}
+            <div className="mb-5 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-4 py-3">
+              <p className="text-xs font-medium text-yellow-600">
+                Limited by: <span className="font-bold">{selectedDish.limitingIngredient || "Unknown"}</span>
+              </p>
+            </div>
+
+            {/* Ingredients list */}
+            <div>
+              <h3 className="mb-3 text-sm font-bold uppercase tracking-wide">
+                Ingredients ({(selectedDish.ingredients || []).length})
+              </h3>
+              <div className="space-y-2">
+                {(selectedDish.ingredients || []).map((recipeIng) => {
+                  const ing = ingredients.find((i) => i.id === recipeIng.ingredientId);
+                  return (
+                    <div
+                      key={recipeIng.ingredientId}
+                      className="flex items-center justify-between rounded-lg bg-secondary/30 px-3 py-2.5"
+                    >
+                      <div>
+                        <p className="text-sm font-medium">
+                          {ing?.name || "Unknown Ingredient"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {ing?.category}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold">
+                          {recipeIng.qty} {ing?.unit}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          On hand: {ing?.onHand}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
