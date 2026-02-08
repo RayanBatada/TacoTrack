@@ -284,16 +284,6 @@ export default function IngredientDetailPage({
         />
       </div>
 
-      {/* Order CTA */}
-      {orderQty > 0 && (
-        <Link
-          href="/orders"
-          className="mb-6 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#a78bfa] to-[#7c3aed] py-3.5 text-sm font-semibold text-white shadow-lg shadow-[#a78bfa]/20 transition-all active:scale-[0.98]"
-        >
-          <Sparkles className="h-4 w-4" />
-          Order {orderQty} {ingredient.unit} from {ingredient.vendor}
-        </Link>
-      )}
     </div>
   );
 }
