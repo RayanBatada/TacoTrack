@@ -28,6 +28,7 @@ export type Ingredient = {
   storageLocation: string | null;
   leadTimeDays: number;
   expiryDate: string;
+  lastDelivery: string | null; // ADD THIS LINE
   dailyUsage: number[];
 };
 
@@ -161,7 +162,8 @@ export async function getIngredients(): Promise<Ingredient[]> {
         vendor: ing.vendor,
         storageLocation: ing.storage_location,
         leadTimeDays: ing.lead_time_days,
-        expiryDate: ing.expiry_date || getExpiryDate(ing), // Use actual expiry or estimate
+        expiryDate: ing.expiry_date || getExpiryDate(ing),
+        lastDelivery: ing.last_delivery_date || null, // ADD THIS LINE
         dailyUsage,
       };
     })

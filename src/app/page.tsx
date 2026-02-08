@@ -40,6 +40,7 @@ import {
   foodCostPercent,
   topSellingItems,
   suggestedOrderQty,
+  predictWaste,
   type Recipe,
   type Ingredient,
   type WasteEntry,
@@ -311,23 +312,6 @@ export default function HomePage() {
   const topSellers = topSellingItems(recipes, ingredients);
   const bottomThree = topSellers.slice(-3).reverse();
 
-  const wasteByCategory = wasteEntries.reduce(
-    (acc: Record<string, number>, w) => {
-      const ing = ingredients.find((i) => i.id === w.ingredientId);
-      const cat = ing?.category || "Other";
-      acc[cat] = (acc[cat] || 0) + w.costLost;
-      return acc;
-    },
-    {},
-  );
-
-  const wasteChartData = Object.entries(wasteByCategory).map(
-    ([name, value]) => ({
-      name,
-      value: Math.round(value * 100) / 100,
-    }),
-  );
-
   const WASTE_COLORS = [
     "#ef4444",
     "#f97316",
@@ -573,7 +557,7 @@ export default function HomePage() {
                 Product
               </div>
               <div className="text-xs font-semibold text-white uppercase tracking-wider">
-                Qty
+                Qty Needed
               </div>
               <div className="text-xs font-semibold text-white uppercase tracking-wider text-center">
                 Status
@@ -1035,106 +1019,100 @@ export default function HomePage() {
 
           {/* RIGHT COLUMN - FOOD FOR THOUGHT */}
           <div className="glass-card rounded-xl p-5 flex flex-col">
-            <div className="flex items-center gap-2 mb-3 text-white">
+            <div className="flex items-center gap-2 mb-4 text-white">
               <UtensilsCrossed className="h-4 w-4" />
               <h2 className="font-bold text-sm tracking-wide text-[15px]">
                 FOOD FOR THOUGHT
               </h2>
             </div>
 
-            <div className="flex gap-3 flex-1 min-h-0">
-              <div className="w-[45%] flex flex-col gap-3">
-                <div className="bg-destructive/5 p-3 rounded-lg border border-destructive/20">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">
-                    Top Waste
-                  </p>
-                  <p className="text-sm font-bold text-destructive truncate">
-                    {bottomThree.length > 0 && bottomThree[0]?.name
-                      ? bottomThree[0].name
-                      : "N/A"}
-                  </p>
-                </div>
-
-                <div className="bg-secondary/30 p-3 rounded-lg border border-white/5 flex-1">
-                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
-                    Total/wk
-                  </p>
-                  <p className="text-2xl font-bold text-foreground">
-                    $
-                    {wasteEntries
-                      .reduce((s, w) => s + w.costLost, 0)
-                      .toFixed(0)}
-                  </p>
-                </div>
+            {/* Summary Stats */}
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div className="bg-destructive/10 p-3 rounded-lg border border-destructive/20">
+                <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-1">
+                  Total Predicted Loss
+                </p>
+                <p className="text-2xl font-bold text-destructive">
+                  $
+                  {predictWaste(ingredients)
+                    .reduce((s, w) => s + w.wasteValue, 0)
+                    .toFixed(0)}
+                </p>
+                <p className="text-[9px] text-muted-foreground mt-1">
+                  Next 7 days
+                </p>
               </div>
 
-              {wasteChartData.length > 0 && (
-                <div className="flex-1 flex items-center justify-center gap-3">
-                  <div className="w-[55%] h-full flex items-center justify-center">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={wasteChartData}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={32}
-                          outerRadius={62}
-                          paddingAngle={0}
-                          dataKey="value"
-                          isAnimationActive={false}
-                          stroke="#ffffff"
-                          strokeWidth={1.5}
-                        >
-                          {wasteChartData.map((entry, index) => (
-                            <Cell
-                              key={`cell-${index}`}
-                              fill={WASTE_COLORS[index % WASTE_COLORS.length]}
-                            />
-                          ))}
-                        </Pie>
-                        <Tooltip
-                          contentStyle={tooltipStyle}
-                          formatter={(value: number) => [
-                            `$${value.toFixed(2)}`,
-                            "Cost",
-                          ]}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
+              <div className="bg-warning/10 p-3 rounded-lg border border-warning/20">
+                <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-1">
+                  Items at Risk
+                </p>
+                <p className="text-2xl font-bold text-warning">
+                  {predictWaste(ingredients).length}
+                </p>
+                <p className="text-[9px] text-muted-foreground mt-1">
+                  Will expire soon
+                </p>
+              </div>
+            </div>
 
-                  <div className="flex flex-col gap-2 justify-center text-[15px]">
-                    {wasteChartData.map((item, idx) => (
-                      <div
-                        key={item.name.toUpperCase()}
-                        className="flex items-center gap-2"
-                      >
-                        <div
-                          className="h-3 w-3 rounded-full shrink-0"
-                          style={{
-                            backgroundColor:
-                              WASTE_COLORS[idx % WASTE_COLORS.length],
-                          }}
-                        />
-                        <div className="flex flex-col">
-                          <span className="text-muted-foreground leading-tight">
-                            {item.name.toUpperCase()}
+            {/* Top 5 Waste Risks */}
+            <div className="flex-1 space-y-2 overflow-y-auto">
+              {predictWaste(ingredients)
+                .slice(0, 5)
+                .map((item, idx) => {
+                  const isCritical = item.expiresIn <= 2;
+                  return (
+                    <div
+                      key={item.ingredientId}
+                      className={`p-3 rounded-lg border transition-all ${
+                        isCritical
+                          ? "bg-destructive/10 border-destructive/30"
+                          : "bg-secondary/30 border-white/5"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-lg font-bold text-muted-foreground">
+                            #{idx + 1}
                           </span>
-                          <span className="font-semibold text-foreground leading-tight">
-                            {(
-                              (item.value /
-                                wasteChartData.reduce(
-                                  (s, d) => s + d.value,
-                                  0,
-                                )) *
-                              100
-                            ).toFixed(0)}
-                            %
+                          <span className="text-sm font-semibold text-white truncate">
+                            {item.ingredientName}
                           </span>
                         </div>
+                        <span
+                          className={`text-xs font-bold px-2 py-0.5 rounded ${
+                            isCritical
+                              ? "bg-destructive text-white"
+                              : "bg-warning/20 text-warning"
+                          }`}
+                        >
+                          {item.expiresIn}d
+                        </span>
                       </div>
-                    ))}
-                  </div>
+
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">
+                          Will waste: {item.predictedWaste.toFixed(1)}{" "}
+                          {item.unit}
+                        </span>
+                        <span className="font-bold text-destructive">
+                          -${item.wasteValue.toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+
+              {predictWaste(ingredients).length === 0 && (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <UtensilsCrossed className="h-12 w-12 text-success mb-3 opacity-50" />
+                  <p className="text-sm font-semibold text-success">
+                    No Waste Predicted!
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    All ingredients on track
+                  </p>
                 </div>
               )}
             </div>
