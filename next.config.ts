@@ -4,6 +4,8 @@ import path from "node:path";
 const LOADER = path.resolve(__dirname, 'src/visual-edits/component-tagger-loader.js');
 
 const nextConfig: NextConfig = {
+  output: 'standalone',  // ADD THIS
+  distDir: '.next',      // ADD THIS
   images: {
     remotePatterns: [
       {
@@ -16,7 +18,8 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  outputFileTracingRoot: path.resolve(__dirname, '../../'),
+  // REMOVE OR COMMENT OUT THIS LINE - it's causing the path issue:
+  // outputFileTracingRoot: path.resolve(__dirname, '../../'),
   typescript: {
     ignoreBuildErrors: true,
   },
