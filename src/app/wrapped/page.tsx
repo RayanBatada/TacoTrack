@@ -31,7 +31,10 @@ function calculateStats(
   ingredients: Ingredient[],
   wasteEntries: WasteEntry[],
 ): WrappedStats {
-  const totalDishesServed = recipes.reduce((sum, recipe) => sum + (recipe.dailySales || []).reduce((a, b) => a + b, 0), 0);
+  const totalDishesServed = recipes.reduce(
+    (sum, recipe) => sum + (recipe.dailySales || []).reduce((a, b) => a + b, 0),
+    0,
+  );
 
   // Calculate top dish
   const dishSalesMap = recipes.map((recipe) => ({
@@ -49,14 +52,23 @@ function calculateStats(
     .slice(0, 3)
     .map((d) => ({ ...d.recipe, sales: d.totalSales }));
 
-  const totalRevenue = topThreeDishes.reduce((sum, dish) => sum + dish.sales * dish.sellPrice, 0);
-  const totalWaste = wasteEntries.reduce((sum, w) => sum + (w.costLost || 0), 0);
+  const totalRevenue = topThreeDishes.reduce(
+    (sum, dish) => sum + dish.sales * dish.sellPrice,
+    0,
+  );
+  const totalWaste = wasteEntries.reduce(
+    (sum, w) => sum + (w.costLost || 0),
+    0,
+  );
 
   // Best day (sum of all sales by day index)
-  const salesByDay = Array(14)
+  const salesByDay = Array(7)
     .fill(0)
     .map((_, dayIndex) =>
-      recipes.reduce((sum, recipe) => sum + recipe.dailySales[dayIndex], 0),
+      recipes.reduce(
+        (sum, recipe) => sum + (recipe.dailySales[dayIndex] || 0),
+        0,
+      ),
     );
   const bestDayIndex = salesByDay.indexOf(Math.max(...salesByDay));
   const bestDayRevenue = salesByDay[bestDayIndex];
@@ -90,20 +102,19 @@ function calculateStats(
   // Trending up (recipes with rising sales)
   const trendingUp = recipes
     .filter((r) => {
-      const firstWeekAvg =
-        r.dailySales.slice(0, 7).reduce((a, b) => a + b, 0) / 7;
-      const secondWeekAvg =
-        r.dailySales.slice(7).reduce((a, b) => a + b, 0) / 7;
-      return secondWeekAvg > firstWeekAvg * 1.15;
+      // Compare recent average to overall average
+      const recentAvg = r.dailySales.slice(-3).reduce((a, b) => a + b, 0) / 3;
+      const overallAvg = r.dailySales.reduce((a, b) => a + b, 0) / 7;
+      return recentAvg > overallAvg * 1.2;
     })
     .sort((a, b) => {
-      const aFirstWeek = a.dailySales.slice(0, 7).reduce((a, c) => a + c, 0);
-      const aSecondWeek = a.dailySales.slice(7).reduce((a, c) => a + c, 0);
-      const bFirstWeek = b.dailySales.slice(0, 7).reduce((a, c) => a + c, 0);
-      const bSecondWeek = b.dailySales.slice(7).reduce((a, c) => a + c, 0);
+      const aRecent = a.dailySales.slice(-3).reduce((a, c) => a + c, 0) / 3;
+      const aOverall = a.dailySales.reduce((a, c) => a + c, 0) / 7;
+      const bRecent = b.dailySales.slice(-3).reduce((a, c) => a + c, 0) / 3;
+      const bOverall = b.dailySales.reduce((a, c) => a + c, 0) / 7;
 
-      const aGrowth = aFirstWeek > 0 ? aSecondWeek / aFirstWeek : 0;
-      const bGrowth = bFirstWeek > 0 ? bSecondWeek / bFirstWeek : 0;
+      const aGrowth = aOverall > 0 ? aRecent / aOverall : 0;
+      const bGrowth = bOverall > 0 ? bRecent / bOverall : 0;
 
       return bGrowth - aGrowth;
     })

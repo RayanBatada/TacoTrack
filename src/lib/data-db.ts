@@ -12,7 +12,7 @@ export type Recipe = {
   sellPrice: number;
   active: boolean;
   ingredients: { ingredientId: string; qty: number }[];
-  dailySales: number[]; // For backward compatibility with charts
+  dailySales: number[];
 };
 
 export type Ingredient = {
@@ -28,7 +28,7 @@ export type Ingredient = {
   storageLocation: string | null;
   leadTimeDays: number;
   expiryDate: string;
-  dailyUsage: number[]; // [Sun, Mon, Tue, Wed, Thu, Fri, Sat]
+  dailyUsage: number[];
 };
 
 export type Order = {
@@ -63,7 +63,6 @@ export type Alert = {
 // FETCH RECIPES WITH DAILY SALES FROM sales_events
 // =============================================================================
 export async function getRecipes(): Promise<Recipe[]> {
-  // Fetch recipes
   const { data: recipesData, error: recError } = await supabase
     .from('recipes')
     .select('*')
@@ -74,18 +73,9 @@ export async function getRecipes(): Promise<Recipe[]> {
     return [];
   }
 
-  // Fetch recipe ingredients
-  const { data: ingredientsData } = await supabase
-    .from('recipe_ingredients')
-    .select('recipe_id, ingredient_id, quantity');
-
-  // For each recipe, calculate daily sales from sales_events
   const recipesWithSales = await Promise.all(
     (recipesData || []).map(async (recipe) => {
       const dailySales = await calculateDailySalesForRecipe(recipe.id);
-      const ingredients = (ingredientsData || [])
-        .filter(ri => ri.recipe_id === recipe.id)
-        .map(ri => ({ ingredientId: ri.ingredient_id, qty: ri.quantity }));
 
       return {
         id: recipe.id,
@@ -94,8 +84,8 @@ export async function getRecipes(): Promise<Recipe[]> {
         yieldPercent: recipe.yield_percent,
         sellPrice: recipe.sell_price,
         active: recipe.active,
-        ingredients,
-        dailySales, // [Sun, Mon, Tue, Wed, Thu, Fri, Sat]
+        ingredients: recipe.ingredients || [],
+        dailySales,
       };
     })
   );
@@ -103,30 +93,27 @@ export async function getRecipes(): Promise<Recipe[]> {
   return recipesWithSales;
 }
 
-// Calculate daily sales for a recipe from sales_events
 export async function calculateDailySalesForRecipe(recipeId: string): Promise<number[]> {
   const ninetyDaysAgo = new Date();
   ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
   const { data: salesData, error } = await supabase
     .from('sales_events')
-    .select('quantity, day_of_week, sale_timestamp')
+    .select('quantity, sold_at')
     .eq('recipe_id', recipeId)
-    .gte('sale_timestamp', ninetyDaysAgo.toISOString());
+    .gte('sold_at', ninetyDaysAgo.toISOString());
 
   if (error) {
     console.error(`Error fetching sales for recipe ${recipeId}:`, error);
   }
 
-  // Group by actual DATE first
   const salesByDate: Record<string, number> = {};
 
   (salesData || []).forEach(sale => {
-    const dateKey = sale.sale_timestamp.split('T')[0];
+    const dateKey = sale.sold_at.split('T')[0];
     salesByDate[dateKey] = (salesByDate[dateKey] || 0) + sale.quantity;
   });
 
-  // Group daily totals by day of week
   const dailyTotalsByDow: Record<number, number[]> = {
     0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: []
   };
@@ -137,7 +124,6 @@ export async function calculateDailySalesForRecipe(recipeId: string): Promise<nu
     dailyTotalsByDow[dow].push(total);
   });
 
-  // Return average daily total for each day of week
   return [0, 1, 2, 3, 4, 5, 6].map(day => {
     const dailyTotals = dailyTotalsByDow[day];
     if (dailyTotals.length === 0) return 0;
@@ -159,7 +145,6 @@ export async function getIngredients(): Promise<Ingredient[]> {
     return [];
   }
 
-  // Calculate daily usage for each ingredient
   const ingredientsWithUsage = await Promise.all(
     (ingredientsData || []).map(async (ing) => {
       const dailyUsage = await calculateDailyUsageForIngredient(ing.id);
@@ -176,8 +161,8 @@ export async function getIngredients(): Promise<Ingredient[]> {
         vendor: ing.vendor,
         storageLocation: ing.storage_location,
         leadTimeDays: ing.lead_time_days,
-        expiryDate: getExpiryDate(ing), // Calculated based on category
-        dailyUsage, // [Sun, Mon, Tue, Wed, Thu, Fri, Sat]
+        expiryDate: getExpiryDate(ing),
+        dailyUsage,
       };
     })
   );
@@ -185,117 +170,28 @@ export async function getIngredients(): Promise<Ingredient[]> {
   return ingredientsWithUsage;
 }
 
-// Calculate daily usage for an ingredient from sales_events
 async function calculateDailyUsageForIngredient(ingredientId: string): Promise<number[]> {
-  // Get recipes that use this ingredient
-  const { data: recipeLinks } = await supabase
-    .from('recipe_ingredients')
-    .select('recipe_id, quantity')
-    .eq('ingredient_id', ingredientId);
+  const { data: allRecipes } = await supabase
+    .from('recipes')
+    .select('id, ingredients')
+    .eq('active', true);
 
-  if (!recipeLinks || recipeLinks.length === 0) {
+  if (!allRecipes || allRecipes.length === 0) {
     return [0, 0, 0, 0, 0, 0, 0];
   }
 
-  // Get sales for these recipes (last 4 weeks)
-  const fourWeeksAgo = new Date();
-  fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
+  const recipesWithIngredient = allRecipes
+    .filter(r => {
+      const ingredients = r.ingredients || [];
+      return ingredients.some((ing: any) => ing.ingredientId === ingredientId);
+    })
+    .map(r => {
+      const ingredient = (r.ingredients || []).find((ing: any) => ing.ingredientId === ingredientId);
+      return {
+        recipe_id: r.id,
+        quantity: ingredient?.qty || 0
+      };
+    });
 
-  const { data: salesData } = await supabase
-    .from('sales_events')
-    .select('recipe_id, quantity, day_of_week, sale_timestamp')
-    .in('recipe_id', recipeLinks.map(r => r.recipe_id))
-    .gte('sale_timestamp', fourWeeksAgo.toISOString());
-
-  // Group by actual DATE first, then by day of week
-  const usageByDate: Record<string, number> = {};
-
-  (salesData || []).forEach(sale => {
-    const recipeLink = recipeLinks.find(r => r.recipe_id === sale.recipe_id);
-    if (recipeLink) {
-      const dateKey = sale.sale_timestamp.split('T')[0]; // YYYY-MM-DD
-      const ingredientUsed = sale.quantity * recipeLink.quantity;
-      usageByDate[dateKey] = (usageByDate[dateKey] || 0) + ingredientUsed;
-    }
-  });
-
-  // Now group daily totals by day of week and average
-  const dailyTotalsByDow: Record<number, number[]> = {
-    0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: []
-  };
-
-  Object.entries(usageByDate).forEach(([dateStr, total]) => {
-    const date = new Date(dateStr);
-    const dow = date.getDay();
-    dailyTotalsByDow[dow].push(total);
-  });
-
-  // Return average daily total for each day of week
-  return [0, 1, 2, 3, 4, 5, 6].map(day => {
-    const dailyTotals = dailyTotalsByDow[day];
-    if (dailyTotals.length === 0) return 0;
-    const sum = dailyTotals.reduce((a, b) => a + b, 0);
-    return sum / dailyTotals.length; // Average of daily totals
-  });
-}
-
-// Helper: Get expiry date (estimate based on category)
-function getExpiryDate(ing: any): string {
-  const today = new Date();
-  const daysToAdd = ing.category === 'produce' ? 7 :
-    ing.category === 'protein' ? 5 :
-      ing.category === 'dairy' ? 14 : 30;
-
-  today.setDate(today.getDate() + daysToAdd);
-  return today.toISOString().split('T')[0];
-}
-
-// =============================================================================
-// FETCH ORDERS
-// =============================================================================
-export async function getOrders(): Promise<Order[]> {
-  const { data, error } = await supabase
-    .from('orders')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(20);
-
-  if (error) {
-    console.error('Error fetching orders:', error);
-    return [];
-  }
-
-  return (data || []).map(o => ({
-    id: o.id,
-    vendor: o.vendor,
-    items: o.items || [],
-    status: o.status,
-    deliveryDate: o.delivery_date,
-    totalCost: o.total_cost || 0,
-  }));
-}
-
-// =============================================================================
-// FETCH WASTE ENTRIES
-// =============================================================================
-export async function getWasteEntries(): Promise<WasteEntry[]> {
-  const { data, error } = await supabase
-    .from('waste_entries')
-    .select('*')
-    .order('date', { ascending: false })
-    .limit(100);
-
-  if (error) {
-    console.error('Error fetching waste:', error);
-    return [];
-  }
-
-  return (data || []).map(w => ({
-    id: w.id,
-    ingredientId: w.ingredient_id,
-    qty: w.qty,
-    reason: w.reason,
-    date: w.date,
-    costLost: w.cost_lost || 0,
-  }));
-}
+  if (recipesWithIngredient.length === 0) {
+    return [0, 0, 0, 0, 0, 0, 0]

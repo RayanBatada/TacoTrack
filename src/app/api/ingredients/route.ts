@@ -1,65 +1,14 @@
 import { supabase } from "@/lib/supabase";
 import { NextResponse } from "next/server";
+import { getIngredients } from "@/lib/data-db";
 
-// Helper to transform snake_case database fields to camelCase and compute daily usage
-async function transformIngredient(ing: any) {
-  // Fetch usage events for this ingredient over the last 14 days
-  const fourteenDaysAgo = new Date();
-  fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
-
-  const { data: usageData } = await supabase
-    .from("inventory_transactions")
-    .select("quantity, transaction_timestamp")
-    .eq("ingredient_id", ing.id)
-    .eq("transaction_type", "usage")
-    .gte("transaction_timestamp", fourteenDaysAgo.toISOString())
-    .order("transaction_timestamp", { ascending: true });
-
-  // Build daily usage array for last 14 days
-  const dailyUsage = Array(14).fill(0);
-  if (usageData) {
-    usageData.forEach((usage: any) => {
-      const usageDate = new Date(usage.transaction_timestamp);
-      const daysAgo = Math.floor(
-        (new Date().getTime() - usageDate.getTime()) / (1000 * 60 * 60 * 24)
-      );
-      if (daysAgo >= 0 && daysAgo < 14) {
-        dailyUsage[13 - daysAgo] += Math.abs(usage.quantity);
-      }
-    });
-  }
-
-  return {
-    id: ing.id,
-    name: ing.name,
-    category: ing.category,
-    unit: ing.unit,
-    onHand: ing.on_hand,
-    parLevel: ing.par_level,
-    costPerUnit: ing.cost_per_unit,
-    vendor: ing.vendor,
-    storageLocation: ing.storage_location,
-    expiryDate: null,
-    lastDelivery: null,
-    leadTimeDays: ing.lead_time_days,
-    dailyUsage,
-  };
-}
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const { data, error } = await supabase
-      .from("ingredients")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (error) throw error;
-
-    const transformed = await Promise.all(
-      (data || []).map((ing) => transformIngredient(ing))
-    );
-
-    return NextResponse.json(transformed);
+    // Use the centralized function that calculates daily usage
+    const ingredients = await getIngredients();
+    return NextResponse.json(ingredients);
   } catch (error) {
     console.error("Error fetching ingredients:", error);
     return NextResponse.json({ error: "Failed to fetch ingredients" }, { status: 500 });
@@ -72,7 +21,19 @@ export async function POST(request: Request) {
 
     const { data, error } = await supabase
       .from("ingredients")
-      .insert([body])
+      .insert([{
+        id: body.id,
+        name: body.name,
+        category: body.category,
+        unit: body.unit,
+        on_hand: body.onHand,
+        par_level: body.parLevel,
+        reorder_point: body.reorderPoint || body.parLevel * 0.5,
+        cost_per_unit: body.costPerUnit,
+        vendor: body.vendor,
+        storage_location: body.storageLocation || null,
+        lead_time_days: body.leadTimeDays || 2,
+      }])
       .select();
 
     if (error) throw error;
@@ -81,5 +42,34 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Error creating ingredient:", error);
     return NextResponse.json({ error: "Failed to create ingredient" }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const body = await request.json();
+    const { id, ...updates } = body;
+
+    // Convert camelCase to snake_case
+    const dbUpdates: any = {};
+    if (updates.onHand !== undefined) dbUpdates.on_hand = updates.onHand;
+    if (updates.parLevel !== undefined) dbUpdates.par_level = updates.parLevel;
+    if (updates.costPerUnit !== undefined) dbUpdates.cost_per_unit = updates.costPerUnit;
+    if (updates.name !== undefined) dbUpdates.name = updates.name;
+    if (updates.category !== undefined) dbUpdates.category = updates.category;
+    if (updates.vendor !== undefined) dbUpdates.vendor = updates.vendor;
+
+    const { data, error } = await supabase
+      .from("ingredients")
+      .update(dbUpdates)
+      .eq("id", id)
+      .select();
+
+    if (error) throw error;
+
+    return NextResponse.json(data[0] || {});
+  } catch (error) {
+    console.error("Error updating ingredient:", error);
+    return NextResponse.json({ error: "Failed to update ingredient" }, { status: 500 });
   }
 }
