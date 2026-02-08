@@ -5,80 +5,101 @@ import { getIngredients, getRecipes } from "@/lib/data-db";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
+// ---------------------------------------------------------
+// 1. HARDCODED CONTEXT (The "Brain" of the operation)
+// ---------------------------------------------------------
+// In a real app, you might fetch this from an API, but hardcoding
+// the season is a quick way to make the AI "smart" about traffic.
+const UGA_HOME_GAMES_2025 = [
+    "2025-08-30", // vs Marshall
+    "2025-09-06", // vs Austin Peay
+    "2025-09-27", // vs Alabama (Huge game)
+    "2025-10-04", // vs Kentucky
+    "2025-10-18", // vs Ole Miss
+    "2025-11-15", // vs Texas
+    "2025-11-22", // vs Charlotte
+];
+
 export async function chatWithGemini(userMessage: string) {
     try {
         const model = genAI.getGenerativeModel({ model: "gemma-3-27b-it" });
 
-        // 1. DATA PROCESSING (The "Database Pull")
-        // Fetch live data from Supabase
-        const ingredients = await getIngredients();
-        const recipes = await getRecipes();
+        // --- A. CONTEXT PREPARATION ---
+        const today = new Date();
+        const dateString = today.toISOString().split('T')[0]; // YYYY-MM-DD
+        const dayOfWeek = today.toLocaleDateString('en-US', { weekday: 'long' });
 
-        // Convert your raw data objects into a clear text format the AI can read.
+        // Check if today is a Game Day OR a Friday before a Game Day
+        const isGameDay = UGA_HOME_GAMES_2025.includes(dateString);
+        const isGameWeekend = isGameDay || UGA_HOME_GAMES_2025.some(gameDate => {
+            const game = new Date(gameDate);
+            const diffTime = game.getTime() - today.getTime();
+            const diffDays = diffTime / (1000 * 3600 * 24);
+            return diffDays > 0 && diffDays < 2; // It's Friday/Saturday before game
+        });
 
-        // --- INVENTORY DATABASE ---
+        // --- B. DATABASE PULL ---
+        const [ingredients, recipes] = await Promise.all([
+            getIngredients(),
+            getRecipes()
+        ]);
+
+        // --- C. DATA FORMATTING ---
         const inventoryDB = ingredients.map(i => {
-            // Calculate how many days of stock we have left based on recent usage
             const avgUsage = i.dailyUsage.reduce((a, b) => a + b, 0) / i.dailyUsage.length || 1;
             const daysStock = (i.onHand / avgUsage).toFixed(1);
+            // Add a visual flag for the AI if stock is critical
+            const status = Number(daysStock) < 2 ? "🔴 CRITICAL LOW" : "🟢 OK";
 
-            return `ITEM: ${i.name} (ID: ${i.id})
+            return `[${status}] ITEM: ${i.name}
       - Stock: ${i.onHand} ${i.unit}
       - Cost: $${i.costPerUnit}/${i.unit}
       - Vendor: ${i.vendor}
-      - Expiry: ${i.expiryDate}
-      - Usage: ~${avgUsage.toFixed(1)} ${i.unit}/day
-      - Days Left: ${daysStock} days`;
-        }).join("\n\n");
+      - Avg Usage: ${avgUsage.toFixed(1)}/day
+      - Runway: ${daysStock} days`;
+        }).join("\n");
 
-        // --- RECIPE DATABASE ---
         const recipeDB = recipes.map(r => {
-            // Calculate sales velocity
-            const avgSales = r.dailySales.reduce((a, b) => a + b, 0) / r.dailySales.length || 0;
+            const ingredientList = r.ingredients.map(ing => {
+                const detail = ingredients.find(i => i.id === ing.ingredientId);
+                return `${ing.qty} ${detail?.unit || 'units'} ${detail?.name || 'Unknown Ingredient'}`;
+            }).join(", ");
 
-            // Format the list of ingredients for this recipe
-            const ingredientList = r.ingredients.map(ing =>
-                `${ing.qty} ${ing.unit} of ${ing.ingredientId}`
-            ).join(", ");
+            return `DISH: ${r.name} ($${r.sellPrice})
+      - Ingredients: ${ingredientList}`;
+        }).join("\n");
 
-            return `DISH: ${r.name}
-      - Price: $${r.sellPrice}
-      - Avg Sales: ${avgSales.toFixed(0)}/day
-      - Recipe: ${ingredientList}`;
-        }).join("\n\n");
-
-        // 2. THE ANALYST PROMPT
+        // --- D. THE ENHANCED PROMPT ---
         const systemPrompt = `
-      You are "Taco Talk", the AI Manager for a restaurant in Athens, GA.
-      You have direct access to the live inventory database below.
+      You are "Taco Talk", the AI Operations Director for a busy restaurant in Athens, GA.
+      
+      === CURRENT CONTEXT (DO NOT ASK USER FOR THIS) ===
+      - Today is: ${dayOfWeek}, ${dateString}
+      - UGA Home Game Alert: ${isGameWeekend ? "YES! EXPECT DOUBLE VOLUME." : "No game this weekend (Standard Volume)."}
+      - Weather Rule: If Raining -> Push delivery combos. If Sunny -> Push Patio drinks.
 
-      === INVENTORY DATABASE ===
+      === LIVE INVENTORY ===
       ${inventoryDB}
 
-      === RECIPE DATABASE ===
+      === RECIPE SPECS ===
       ${recipeDB}
 
-      === VENDOR LIST ===
-      Sherwood Meats, Friar Tuck Dairy, Greenwood Farms, Sherwood Provisions, Greenwood Bakery.
-
       === INSTRUCTIONS ===
-      1. **Be Precise:** When asked about stock, cite the exact numbers from the database above.
-      2. **Do Math:** - If asked "How many Burritos can I make?", find the "Burrito" recipe, check its ingredients (e.g., Beef), and divide the Beef Stock by the Beef per Burrito.
-         - If asked "How much to buy X?", multiply quantity by Cost per Unit.
-      3. **Local Context:**
-         - We are in Athens, GA. UGA Football games (Saturdays) mean double traffic.
-         - Rain = Delivery spikes. Sun = Patio spikes.
-      4. **Tone:** Professional, data-driven, but friendly.
+      1. **Bottleneck Logic:** When asked "How many Burritos can I make?", do not just check the main meat. Check ALL ingredients (Tortillas, Cheese, Meat). The one with the *lowest* possible yield is the answer.
+      2. **Formatting:** - Use **Bold** for key numbers (e.g., "**45 lbs** left").
+         - Use Bullet points for lists.
+         - Keep answers short and punchy. Managers are busy.
+      3. **Purchase Orders:** If asked what to buy, group items by VENDOR (e.g., "From Sherwood Meats: ...").
+      4. **Critical Alerts:** If an item is marked "🔴 CRITICAL LOW", mention it immediately if it relates to the user's question.
 
       User Question: ${userMessage}
     `;
 
-        // 3. GENERATE
         const result = await model.generateContent(systemPrompt);
         return result.response.text();
 
     } catch (error) {
         console.error("Gemini Error:", error);
-        return "I'm having trouble connecting to the database. Please try again.";
+        return "I'm having trouble connecting to the inventory system. Please check the logs.";
     }
 }

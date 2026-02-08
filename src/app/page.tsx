@@ -143,7 +143,7 @@ export default function HomePage() {
     const interval = setInterval(() => {
       setAnimationFrame((prev) => (prev + 1) % 3);
     }, 600); // 600ms per frame = ~1.8s full cycle (slow animation)
-    
+
     return () => clearInterval(interval);
   }, []);
 
@@ -235,9 +235,9 @@ export default function HomePage() {
   const avgFoodCost =
     recipes.length > 0
       ? Math.round(
-          recipes.reduce((s, r) => s + foodCostPercent(r, ingredients), 0) /
-            recipes.length,
-        )
+        recipes.reduce((s, r) => s + foodCostPercent(r, ingredients), 0) /
+        recipes.length,
+      )
       : 0;
 
   // ===========================================================================
@@ -532,504 +532,525 @@ export default function HomePage() {
   return (
     <div className="h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-6 font-inter overflow-hidden flex flex-col">
       <div className="flex-1 min-h-0 flex flex-col space-y-4">
-      {/* TOP SECTION - Action Required & Trends */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 min-h-0">
-        {/* LEFT COLUMN - ACTION REQUIRED TABLE */}
-        <div className="glass-card rounded-xl p-5 flex flex-col relative overflow-hidden">
-          <div className="flex items-center gap-2 mb-4 text-white">
-            <AlertTriangle className="h-5 w-5" />
-            <h2 className="font-bold tracking-wide">ACTION REQUIRED</h2>
-          </div>
-
-          <div className="grid grid-cols-4 gap-3 mb-3 px-2">
-            <div className="text-xs font-semibold text-white uppercase tracking-wider">
-              Product
+        {/* TOP SECTION - Action Required & Trends */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 min-h-0">
+          {/* LEFT COLUMN - ACTION REQUIRED TABLE */}
+          <div className="glass-card rounded-xl p-5 flex flex-col relative overflow-hidden">
+            <div className="flex items-center gap-2 mb-4 text-white">
+              <AlertTriangle className="h-5 w-5" />
+              <h2 className="font-bold tracking-wide">ACTION REQUIRED</h2>
             </div>
-            <div className="text-xs font-semibold text-white uppercase tracking-wider">
-              Qty
-            </div>
-            <div className="text-xs font-semibold text-white uppercase tracking-wider text-center">
-              Status
-            </div>
-            <div className="text-xs font-semibold text-white uppercase tracking-wider text-right">
-              Urgency
-            </div>
-          </div>
 
-          <div className="border-t border-white/10 mb-3" />
-
-          <div className="space-y-2">
-            {stockItems.slice(0, 5).map((item) => {
-              const isCritical = item.days <= 2;
-              return (
-                <div
-                  key={item.id}
-                  className={`grid grid-cols-4 gap-3 px-3 py-2.5 rounded-lg border transition-colors ${
-                    isCritical
-                      ? "bg-destructive/10 border-destructive/20"
-                      : "bg-secondary/30 border-white/5 hover:bg-secondary/50"
-                  }`}
-                >
-                  <div className="flex items-center min-w-0">
-                    <p className="text-xs font-semibold text-white truncate">
-                      {item.name}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center">
-                    <span className="text-xs font-semibold text-white">
-                      {item.suggestedQty}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-center">
-                    {isCritical && (
-                      <span className="bg-destructive text-white text-[8px] px-2 py-1 rounded-full uppercase font-bold">
-                        Order Now
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="flex items-center justify-end">
-                    <span
-                      className={`text-xs font-bold ${
-                        isCritical ? "text-destructive" : "text-white"
-                      }`}
-                    >
-                      {item.days.toFixed(1)}d
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-
-            {stockItems.length === 0 && (
-              <div className="text-sm text-white/60 text-center py-4">
-                No actions required.
+            <div className="grid grid-cols-4 gap-3 mb-3 px-2">
+              <div className="text-xs font-semibold text-white uppercase tracking-wider">
+                Product
               </div>
-            )}
+              <div className="text-xs font-semibold text-white uppercase tracking-wider">
+                Qty
+              </div>
+              <div className="text-xs font-semibold text-white uppercase tracking-wider text-center">
+                Status
+              </div>
+              <div className="text-xs font-semibold text-white uppercase tracking-wider text-right">
+                Urgency
+              </div>
+            </div>
+
+            <div className="border-t border-white/10 mb-3" />
+
+            <div className="space-y-2">
+              {stockItems.slice(0, 5).map((item) => {
+                const isCritical = item.days <= 2;
+                return (
+                  <div
+                    key={item.id}
+                    className={`grid grid-cols-4 gap-3 px-3 py-2.5 rounded-lg border transition-colors ${isCritical
+                        ? "bg-destructive/10 border-destructive/20"
+                        : "bg-secondary/30 border-white/5 hover:bg-secondary/50"
+                      }`}
+                  >
+                    <div className="flex items-center min-w-0">
+                      <p className="text-xs font-semibold text-white truncate">
+                        {item.name}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center">
+                      <span className="text-xs font-semibold text-white">
+                        {item.suggestedQty}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-center">
+                      {isCritical && (
+                        <span className="bg-destructive text-white text-[8px] px-2 py-1 rounded-full uppercase font-bold">
+                          Order Now
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-end">
+                      <span
+                        className={`text-xs font-bold ${isCritical ? "text-destructive" : "text-white"
+                          }`}
+                      >
+                        {item.days.toFixed(1)}d
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {stockItems.length === 0 && (
+                <div className="text-sm text-white/60 text-center py-4">
+                  No actions required.
+                </div>
+              )}
+            </div>
           </div>
-        </div>
 
-        {/* RIGHT COLUMN - TRENDS GRAPH */}
-        <div className="glass-card rounded-xl p-5 flex flex-col">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Activity className="h-5 w-5 text-primary" />
-              <h2 className="font-bold tracking-wide">TRENDS</h2>
+          {/* RIGHT COLUMN - TRENDS GRAPH */}
+          <div className="glass-card rounded-xl p-5 flex flex-col">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Activity className="h-5 w-5 text-primary" />
+                <h2 className="font-bold tracking-wide">TRENDS</h2>
 
-              {/* Forecast button next to title - always visible */}
-              <button
-                onClick={() => {
-                  if (trendView === "dishes" && selectedDish) {
-                    generateForecast(selectedDish, 7);
-                    setShowForecast(true);
+                {/* Forecast button next to title - always visible */}
+                <button
+                  onClick={() => {
+                    if (trendView === "dishes" && selectedDish) {
+                      generateForecast(selectedDish, 7);
+                      setShowForecast(true);
+                    }
+                  }}
+                  disabled={forecastLoading || trendView === "ingredients"}
+                  title={
+                    trendView === "ingredients"
+                      ? "Switch to Dishes view to forecast"
+                      : ""
                   }
-                }}
-                disabled={forecastLoading || trendView === "ingredients"}
-                title={
-                  trendView === "ingredients"
-                    ? "Switch to Dishes view to forecast"
-                    : ""
-                }
-                className={`ml-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border-2 border-white/30 ${
-                  trendView === "ingredients"
-                    ? "bg-secondary/30 text-muted-foreground cursor-not-allowed opacity-50"
-                    : forecastLoading
-                      ? "bg-primary/50 text-white cursor-wait"
-                      : "bg-primary text-white hover:bg-primary/90 hover:border-white/60"
-                }`}
-              >
-                {forecastLoading ? "🔮 Forecasting..." : "🔮 AI Forecast"}
-              </button>
+                  className={`ml-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border-2 border-white/30 ${trendView === "ingredients"
+                      ? "bg-secondary/30 text-muted-foreground cursor-not-allowed opacity-50"
+                      : forecastLoading
+                        ? "bg-primary/50 text-white cursor-wait"
+                        : "bg-primary text-white hover:bg-primary/90 hover:border-white/60"
+                    }`}
+                >
+                  {forecastLoading ? "🔮 Forecasting..." : "🔮 AI Forecast"}
+                </button>
+              </div>
+
+              <div className="flex bg-secondary rounded-lg p-1 border border-primary/20">
+                <button
+                  onClick={() => handleTrendViewChange("ingredients")}
+                  className={`text-xs px-3 py-1.5 rounded-md transition-all ${trendView === "ingredients"
+                      ? "bg-primary text-white shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                    }`}
+                >
+                  Ingredients
+                </button>
+                <button
+                  onClick={() => handleTrendViewChange("dishes")}
+                  className={`text-xs px-3 py-1.5 rounded-md transition-all ${trendView === "dishes"
+                      ? "bg-primary text-white shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                    }`}
+                >
+                  Dishes
+                </button>
+              </div>
             </div>
 
-            <div className="flex bg-secondary rounded-lg p-1 border border-primary/20">
+            <div className="mb-3 relative">
               <button
-                onClick={() => handleTrendViewChange("ingredients")}
-                className={`text-xs px-3 py-1.5 rounded-md transition-all ${
-                  trendView === "ingredients"
-                    ? "bg-primary text-white shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="w-full flex items-center justify-between px-3 py-2 bg-secondary/50 border border-primary/20 rounded-lg hover:bg-secondary/70 transition-colors text-sm"
               >
-                Ingredients
+                <span className="text-foreground">
+                  {getCurrentSelectionLabel()}
+                </span>
+                <ChevronDown
+                  className={`h-4 w-4 text-muted-foreground transition-transform ${isDropdownOpen ? "rotate-180" : ""
+                    }`}
+                />
               </button>
-              <button
-                onClick={() => handleTrendViewChange("dishes")}
-                className={`text-xs px-3 py-1.5 rounded-md transition-all ${
-                  trendView === "dishes"
-                    ? "bg-primary text-white shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Dishes
-              </button>
-            </div>
-          </div>
 
-          <div className="mb-3 relative">
-            <button
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="w-full flex items-center justify-between px-3 py-2 bg-secondary/50 border border-primary/20 rounded-lg hover:bg-secondary/70 transition-colors text-sm"
-            >
-              <span className="text-foreground">
-                {getCurrentSelectionLabel()}
-              </span>
-              <ChevronDown
-                className={`h-4 w-4 text-muted-foreground transition-transform ${
-                  isDropdownOpen ? "rotate-180" : ""
-                }`}
-              />
-            </button>
-
-            {isDropdownOpen && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-secondary border border-primary/20 rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
-                {trendView === "ingredients"
-                  ? ingredients.map((ing) => (
+              {isDropdownOpen && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-secondary border border-primary/20 rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
+                  {trendView === "ingredients"
+                    ? ingredients.map((ing) => (
                       <button
                         key={ing.id}
                         onClick={() => handleSelectionChange(ing.id)}
-                        className={`w-full px-3 py-2 text-left text-sm hover:bg-primary/10 transition-colors ${
-                          selectedIngredient === ing.id
+                        className={`w-full px-3 py-2 text-left text-sm hover:bg-primary/10 transition-colors ${selectedIngredient === ing.id
                             ? "bg-primary/20 text-primary font-semibold"
                             : "text-foreground"
-                        }`}
+                          }`}
                       >
                         {ing.name}
                       </button>
                     ))
-                  : recipes.map((recipe) => (
+                    : recipes.map((recipe) => (
                       <button
                         key={recipe.id}
                         onClick={() => handleSelectionChange(recipe.id)}
-                        className={`w-full px-3 py-2 text-left text-sm hover:bg-primary/10 transition-colors ${
-                          selectedDish === recipe.id
+                        className={`w-full px-3 py-2 text-left text-sm hover:bg-primary/10 transition-colors ${selectedDish === recipe.id
                             ? "bg-primary/20 text-primary font-semibold"
                             : "text-foreground"
-                        }`}
+                          }`}
                       >
                         {recipe.name}
                       </button>
                     ))}
-              </div>
-            )}
-          </div>
+                </div>
+              )}
+            </div>
 
-          {/* The actual line graph OR forecast results */}
-          <div className="flex-1 w-full min-h-0">
-            {showForecast && forecast.length > 0 ? (
-              // SHOW FORECAST RESULTS
-              <div className="h-full w-full bg-secondary/20 rounded-lg border border-white/5 p-4 overflow-y-auto">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-bold text-sm text-primary">
-                    AI Forecast Results
-                  </h3>
-                  <button
-                    onClick={() => setShowForecast(false)}
-                    className="text-xs text-muted-foreground hover:text-foreground"
-                  >
-                    Show Graph
-                  </button>
-                </div>
-                <div className="space-y-2">
-                  {forecast.map((f) => {
-                    const date = new Date(f.date);
-                    const dayName = [
-                      "Sun",
-                      "Mon",
-                      "Tue",
-                      "Wed",
-                      "Thu",
-                      "Fri",
-                      "Sat",
-                    ][date.getDay()];
-                    return (
-                      <div
-                        key={f.date}
-                        className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg border border-white/5"
-                      >
-                        <div>
-                          <p className="text-sm font-semibold text-foreground">
-                            {dayName}, {date.toLocaleDateString()}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className="text-lg font-bold text-primary">
-                            {f.predicted_quantity} units
-                          </span>
-                          <span
-                            className={`text-xs px-2 py-1 rounded ${
-                              f.confidence === "high"
-                                ? "bg-success/20 text-success"
-                                : f.confidence === "medium"
-                                  ? "bg-warning/20 text-warning"
-                                  : "bg-destructive/20 text-destructive"
-                            }`}
-                          >
-                            {f.confidence}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : (
-              // SHOW TREND GRAPH
-              <div className="h-full w-full bg-secondary/20 rounded-lg border border-white/5 p-0 relative">
-                {activeTrendData && activeTrendData.length > 0 ? (
+            {/* The actual line graph OR forecast results */}
+            <div className="flex-1 w-full min-h-0">
+              {showForecast && forecast.length > 0 ? (
+                // SHOW FORECAST RESULTS
+                <div className="h-full w-full bg-secondary/20 rounded-lg border border-white/5 p-0 relative">
+                  <div className="absolute top-3 right-3 z-10">
+                    <button
+                      onClick={() => setShowForecast(false)}
+                      className="text-xs bg-black/40 hover:bg-black/60 text-white px-2 py-1 rounded transition-colors backdrop-blur-sm"
+                    >
+                      Close Forecast
+                    </button>
+                  </div>
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart
-                      data={activeTrendData}
-                      margin={{ top: 5, right: 10, left: 30, bottom: 20 }}
+                      data={forecast.map(f => {
+                        const date = new Date(f.date);
+                        return {
+                          day: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][date.getDay()],
+                          value: f.predicted_quantity,
+                          fullDate: f.date,
+                          confidence: f.confidence
+                        };
+                      })}
+                      margin={{ top: 20, right: 10, left: 0, bottom: 20 }}
                     >
                       <defs>
-                        <linearGradient
-                          id="trendGrad"
-                          x1="0"
-                          y1="0"
-                          x2="0"
-                          y2="1"
-                        >
-                          <stop
-                            offset="0%"
-                            stopColor="#d946ef"
-                            stopOpacity={0.3}
-                          />
-                          <stop
-                            offset="100%"
-                            stopColor="#d946ef"
-                            stopOpacity={0}
-                          />
+                        <linearGradient id="forecastGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#22d3ee" stopOpacity={0.4} />
+                          <stop offset="100%" stopColor="#22d3ee" stopOpacity={0} />
                         </linearGradient>
                       </defs>
-
                       <XAxis
                         dataKey="day"
                         tick={{ fontSize: 10, fill: "#a1a1aa" }}
                         axisLine={false}
                         tickLine={false}
-                        interval={0}
                         height={45}
-                        padding={{ left: 10, right: 10 }}
                       />
-
                       <YAxis
                         tick={{ fontSize: 10, fill: "#a1a1aa" }}
                         axisLine={false}
                         tickLine={false}
                         width={30}
                       />
-
                       <Tooltip
-                        contentStyle={tooltipStyle}
-                        cursor={{ stroke: "#d946ef", strokeWidth: 1 }}
+                        content={({ active, payload }) => {
+                          if (active && payload && payload.length) {
+                            const data = payload[0].payload;
+                            return (
+                              <div style={{ ...tooltipStyle, borderColor: "#22d3ee" }}>
+                                <p className="font-bold mb-1">{data.fullDate}</p>
+                                <p className="text-cyan-400 font-bold text-lg">
+                                  {data.value} units
+                                </p>
+                                <p className="text-xs capitalize text-white/70">
+                                  Confidence: {data.confidence}
+                                </p>
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                        cursor={{ stroke: "#22d3ee", strokeWidth: 1, strokeDasharray: "4 4" }}
                       />
-
                       <Area
                         type="monotone"
                         dataKey="value"
-                        stroke="#d946ef"
+                        stroke="#22d3ee"
                         strokeWidth={3}
-                        fill="url(#trendGrad)"
-                        animationDuration={1000}
-                        dot={false}
-                        activeDot={{ r: 5, fill: "#d946ef" }}
+                        fill="url(#forecastGrad)"
+                        animationDuration={2000}
+                        animationEasing="ease-out"
+                        dot={{ r: 4, fill: "#22d3ee", strokeWidth: 0 }}
+                        activeDot={{ r: 6, fill: "#fff", stroke: "#22d3ee", strokeWidth: 2 }}
                       />
                     </AreaChart>
                   </ResponsiveContainer>
-                ) : (
-                  <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-                    No trend data available.
+
+                  {/* Live Prediction Overlay Badge */}
+                  <div className="absolute top-3 left-3 flex items-center gap-2 pointer-events-none">
+                    <span className="relative flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-cyan-500"></span>
+                    </span>
+                    <span className="text-xs font-bold text-cyan-400 tracking-wider shadow-black drop-shadow-md">
+                      LIVE AI PREDICTION
+                    </span>
                   </div>
-                )}
-              </div>
-            )}
+                </div>
+              ) : (
+                // SHOW TREND GRAPH
+                <div className="h-full w-full bg-secondary/20 rounded-lg border border-white/5 p-0 relative">
+                  {activeTrendData && activeTrendData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart
+                        data={activeTrendData}
+                        margin={{ top: 5, right: 10, left: 30, bottom: 20 }}
+                      >
+                        <defs>
+                          <linearGradient
+                            id="trendGrad"
+                            x1="0"
+                            y1="0"
+                            x2="0"
+                            y2="1"
+                          >
+                            <stop
+                              offset="0%"
+                              stopColor="#d946ef"
+                              stopOpacity={0.3}
+                            />
+                            <stop
+                              offset="100%"
+                              stopColor="#d946ef"
+                              stopOpacity={0}
+                            />
+                          </linearGradient>
+                        </defs>
+
+                        <XAxis
+                          dataKey="day"
+                          tick={{ fontSize: 10, fill: "#a1a1aa" }}
+                          axisLine={false}
+                          tickLine={false}
+                          interval={0}
+                          height={45}
+                          padding={{ left: 10, right: 10 }}
+                        />
+
+                        <YAxis
+                          tick={{ fontSize: 10, fill: "#a1a1aa" }}
+                          axisLine={false}
+                          tickLine={false}
+                          width={30}
+                        />
+
+                        <Tooltip
+                          contentStyle={tooltipStyle}
+                          cursor={{ stroke: "#d946ef", strokeWidth: 1 }}
+                        />
+
+                        <Area
+                          type="monotone"
+                          dataKey="value"
+                          stroke="#d946ef"
+                          strokeWidth={3}
+                          fill="url(#trendGrad)"
+                          animationDuration={1000}
+                          dot={false}
+                          activeDot={{ r: 5, fill: "#d946ef" }}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                      No trend data available.
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* BOTTOM SECTION - TacoTalk AI Chat & Waste Indicator */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 min-h-0">
-        {/* LEFT COLUMN - TACOTALK AI CHATBOT */}
-        <div className="glass-card rounded-xl p-5 flex flex-col relative h-full min-h-0">
-          <div className="flex items-center justify-between gap-2 mb-2 text-warning shrink-0">
-            <div className="flex items-center gap-2">
-              <MessageSquare className="h-4 w-4" />
-              <h2 className="font-bold text-sm tracking-wide text-[15px]">
-                TacoTalk AI
-              </h2>
-            </div>
-            <button
-              onClick={() => setIsChatFullscreen(true)}
-              className="p-1 hover:bg-secondary/30 rounded-md transition-colors"
-              title="Expand to fullscreen"
-            >
-              <Maximize2 className="h-4 w-4" />
-            </button>
-          </div>
-
-          <div className="flex-1 overflow-y-auto space-y-3 mb-3 pr-1 text-sm min-h-0">
-            {chatMessages.map((msg, i) => (
-              <div
-                key={i}
-                className={`flex items-center ${
-                  msg.role === "user" ? "justify-end" : "justify-start"
-                } gap-3`}
-              >
-                {msg.role === "bot" && (
-                  <div className="w-10 h-10 flex-shrink-0">
-                    <img
-                      src={
-                        animationFrame === 0
-                          ? "/BellFrame1.png"
-                          : animationFrame === 1
-                            ? "/BellFrame2.png"
-                            : "/BellFrame3.png"
-                      }
-                      alt="Taco Talk"
-                      className="w-full h-full object-contain"
-                    />
-                  </div>
-                )}
-                <div
-                  className={`max-w-[85%] rounded-lg px-3 py-2 ${
-                    msg.role === "user"
-                      ? "bg-primary/20 text-primary-foreground border border-primary/20"
-                      : "bg-secondary text-muted-foreground"
-                  } prose prose-sm prose-invert max-w-none break-words`}
-                >
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {msg.text}
-                  </ReactMarkdown>
-                </div>
+        {/* BOTTOM SECTION - TacoTalk AI Chat & Waste Indicator */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 min-h-0">
+          {/* LEFT COLUMN - TACOTALK AI CHATBOT */}
+          <div className="glass-card rounded-xl p-5 flex flex-col relative h-full min-h-0">
+            <div className="flex items-center justify-between gap-2 mb-2 text-warning shrink-0">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="h-4 w-4" />
+                <h2 className="font-bold text-sm tracking-wide text-[15px]">
+                  TacoTalk AI
+                </h2>
               </div>
-            ))}
-            <div ref={messagesEndRef} />
-          </div>
-
-          <div className="mt-auto">
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleChat()}
-                placeholder="Ask Taco Talk..."
-                className="flex-1 rounded-md border border-primary/20 bg-secondary px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none"
-              />
               <button
-                onClick={handleChat}
-                className="h-8 w-8 flex items-center justify-center rounded-md bg-primary/20 text-primary hover:bg-primary/30"
+                onClick={() => setIsChatFullscreen(true)}
+                className="p-1 hover:bg-secondary/30 rounded-md transition-colors"
+                title="Expand to fullscreen"
               >
-                <Send className="h-3 w-3" />
+                <Maximize2 className="h-4 w-4" />
               </button>
             </div>
-          </div>
-        </div>
 
-        {/* RIGHT COLUMN - FOOD FOR THOUGHT */}
-        <div className="glass-card rounded-xl p-5 flex flex-col">
-          <div className="flex items-center gap-2 mb-3 text-white">
-            <UtensilsCrossed className="h-4 w-4" />
-            <h2 className="font-bold text-sm tracking-wide text-[15px]">
-              FOOD FOR THOUGHT
-            </h2>
-          </div>
-
-          <div className="flex gap-3 flex-1 min-h-0">
-            <div className="w-[45%] flex flex-col gap-3">
-              <div className="bg-destructive/5 p-3 rounded-lg border border-destructive/20">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">
-                  Top Waste
-                </p>
-                <p className="text-sm font-bold text-destructive truncate">
-                  {bottomThree.length > 0 && bottomThree[0]?.name
-                    ? bottomThree[0].name
-                    : "N/A"}
-                </p>
-              </div>
-
-              <div className="bg-secondary/30 p-3 rounded-lg border border-white/5 flex-1">
-                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
-                  Total/wk
-                </p>
-                <p className="text-2xl font-bold text-foreground">
-                  ${wasteEntries.reduce((s, w) => s + w.costLost, 0).toFixed(0)}
-                </p>
-              </div>
+            <div className="flex-1 overflow-y-auto space-y-3 mb-3 pr-1 text-sm min-h-0">
+              {chatMessages.map((msg, i) => (
+                <div
+                  key={i}
+                  className={`flex items-center ${msg.role === "user" ? "justify-end" : "justify-start"
+                    } gap-3`}
+                >
+                  {msg.role === "bot" && (
+                    <div className="w-10 h-10 flex-shrink-0">
+                      <img
+                        src={
+                          animationFrame === 0
+                            ? "/BellFrame1.png"
+                            : animationFrame === 1
+                              ? "/BellFrame2.png"
+                              : "/BellFrame3.png"
+                        }
+                        alt="Taco Talk"
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                  )}
+                  <div
+                    className={`max-w-[85%] rounded-lg px-3 py-2 ${msg.role === "user"
+                        ? "bg-primary/20 text-primary-foreground border border-primary/20"
+                        : "bg-secondary text-muted-foreground"
+                      } prose prose-sm prose-invert max-w-none break-words`}
+                  >
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {msg.text}
+                    </ReactMarkdown>
+                  </div>
+                </div>
+              ))}
+              <div ref={messagesEndRef} />
             </div>
 
-            {wasteChartData.length > 0 && (
-              <div className="flex-1 flex items-center justify-center gap-3">
-                <div className="w-[55%] h-full flex items-center justify-center">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={wasteChartData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={32}
-                        outerRadius={62}
-                        paddingAngle={2}
-                        dataKey="value"
-                        isAnimationActive={false}
-                        stroke="#ffffff"
-                        strokeWidth={1.5}
-                      >
-                        {wasteChartData.map((entry, index) => (
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={WASTE_COLORS[index % WASTE_COLORS.length]}
-                          />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        contentStyle={tooltipStyle}
-                        formatter={(value: number) => [
-                          `$${value.toFixed(2)}`,
-                          "Cost",
-                        ]}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
+            <div className="mt-auto">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleChat()}
+                  placeholder="Ask Taco Talk..."
+                  className="flex-1 rounded-md border border-primary/20 bg-secondary px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none"
+                />
+                <button
+                  onClick={handleChat}
+                  className="h-8 w-8 flex items-center justify-center rounded-md bg-primary/20 text-primary hover:bg-primary/30"
+                >
+                  <Send className="h-3 w-3" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* RIGHT COLUMN - FOOD FOR THOUGHT */}
+          <div className="glass-card rounded-xl p-5 flex flex-col">
+            <div className="flex items-center gap-2 mb-3 text-white">
+              <UtensilsCrossed className="h-4 w-4" />
+              <h2 className="font-bold text-sm tracking-wide text-[15px]">
+                FOOD FOR THOUGHT
+              </h2>
+            </div>
+
+            <div className="flex gap-3 flex-1 min-h-0">
+              <div className="w-[45%] flex flex-col gap-3">
+                <div className="bg-destructive/5 p-3 rounded-lg border border-destructive/20">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">
+                    Top Waste
+                  </p>
+                  <p className="text-sm font-bold text-destructive truncate">
+                    {bottomThree.length > 0 && bottomThree[0]?.name
+                      ? bottomThree[0].name
+                      : "N/A"}
+                  </p>
                 </div>
 
-                <div className="flex flex-col gap-2 justify-center text-[15px]">
-                  {wasteChartData.map((item, idx) => (
-                    <div
-                      key={item.name.toUpperCase()}
-                      className="flex items-center gap-2"
-                    >
-                      <div
-                        className="h-3 w-3 rounded-full shrink-0"
-                        style={{
-                          backgroundColor:
-                            WASTE_COLORS[idx % WASTE_COLORS.length],
-                        }}
-                      />
-                      <div className="flex flex-col">
-                        <span className="text-muted-foreground leading-tight">
-                          {item.name.toUpperCase()}
-                        </span>
-                        <span className="font-semibold text-foreground leading-tight">
-                          {(
-                            (item.value /
-                              wasteChartData.reduce((s, d) => s + d.value, 0)) *
-                            100
-                          ).toFixed(0)}
-                          %
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+                <div className="bg-secondary/30 p-3 rounded-lg border border-white/5 flex-1">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                    Total/wk
+                  </p>
+                  <p className="text-2xl font-bold text-foreground">
+                    ${wasteEntries.reduce((s, w) => s + w.costLost, 0).toFixed(0)}
+                  </p>
                 </div>
               </div>
-            )}
+
+              {wasteChartData.length > 0 && (
+                <div className="flex-1 flex items-center justify-center gap-3">
+                  <div className="w-[55%] h-full flex items-center justify-center">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={wasteChartData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={32}
+                          outerRadius={62}
+                          paddingAngle={2}
+                          dataKey="value"
+                          isAnimationActive={false}
+                          stroke="#ffffff"
+                          strokeWidth={1.5}
+                        >
+                          {wasteChartData.map((entry, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={WASTE_COLORS[index % WASTE_COLORS.length]}
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          contentStyle={tooltipStyle}
+                          formatter={(value: number) => [
+                            `$${value.toFixed(2)}`,
+                            "Cost",
+                          ]}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  <div className="flex flex-col gap-2 justify-center text-[15px]">
+                    {wasteChartData.map((item, idx) => (
+                      <div
+                        key={item.name.toUpperCase()}
+                        className="flex items-center gap-2"
+                      >
+                        <div
+                          className="h-3 w-3 rounded-full shrink-0"
+                          style={{
+                            backgroundColor:
+                              WASTE_COLORS[idx % WASTE_COLORS.length],
+                          }}
+                        />
+                        <div className="flex flex-col">
+                          <span className="text-muted-foreground leading-tight">
+                            {item.name.toUpperCase()}
+                          </span>
+                          <span className="font-semibold text-foreground leading-tight">
+                            {(
+                              (item.value /
+                                wasteChartData.reduce((s, d) => s + d.value, 0)) *
+                              100
+                            ).toFixed(0)}
+                            %
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
       </div>
     </div>
   );

@@ -104,7 +104,7 @@ export async function getRecipes(): Promise<Recipe[]> {
 }
 
 // Calculate daily sales for a recipe from sales_events
-async function calculateDailySalesForRecipe(recipeId: string): Promise<number[]> {
+export async function calculateDailySalesForRecipe(recipeId: string): Promise<number[]> {
   const ninetyDaysAgo = new Date();
   ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
@@ -120,7 +120,7 @@ async function calculateDailySalesForRecipe(recipeId: string): Promise<number[]>
 
   // Group by actual DATE first
   const salesByDate: Record<string, number> = {};
-  
+
   (salesData || []).forEach(sale => {
     const dateKey = sale.sale_timestamp.split('T')[0];
     salesByDate[dateKey] = (salesByDate[dateKey] || 0) + sale.quantity;
@@ -209,7 +209,7 @@ async function calculateDailyUsageForIngredient(ingredientId: string): Promise<n
 
   // Group by actual DATE first, then by day of week
   const usageByDate: Record<string, number> = {};
-  
+
   (salesData || []).forEach(sale => {
     const recipeLink = recipeLinks.find(r => r.recipe_id === sale.recipe_id);
     if (recipeLink) {
@@ -242,10 +242,10 @@ async function calculateDailyUsageForIngredient(ingredientId: string): Promise<n
 // Helper: Get expiry date (estimate based on category)
 function getExpiryDate(ing: any): string {
   const today = new Date();
-  const daysToAdd = ing.category === 'produce' ? 7 : 
-                    ing.category === 'protein' ? 5 :
-                    ing.category === 'dairy' ? 14 : 30;
-  
+  const daysToAdd = ing.category === 'produce' ? 7 :
+    ing.category === 'protein' ? 5 :
+      ing.category === 'dairy' ? 14 : 30;
+
   today.setDate(today.getDate() + daysToAdd);
   return today.toISOString().split('T')[0];
 }
