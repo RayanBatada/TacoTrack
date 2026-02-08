@@ -731,7 +731,7 @@ export default function HomePage() {
             <div className="flex-1 w-full min-h-0">
               {showForecast && forecast.length > 0 ? (
                 // SHOW FORECAST RESULTS WITH ANIMATION
-                <div className="h-full w-full bg-secondary/20 rounded-lg border border-white/5 p-0 relative overflow-hidden">
+                <div className="h-full w-full bg-secondary/20 rounded-lg border border-white/5 p-0 relative">
                   <div className="absolute top-3 right-3 z-10">
                     <button
                       onClick={() => setShowForecast(false)}
@@ -801,7 +801,15 @@ export default function HomePage() {
                         axisLine={false}
                         tickLine={false}
                         width={40}
-                        domain={[0, Math.max(140, ...forecast.filter(f => isFinite(f.predicted_quantity)).map(f => f.predicted_quantity || 0)) * 1.1]}
+                        domain={[
+                          0,
+                          Math.max(
+                            140,
+                            ...forecast
+                              .filter((f) => isFinite(f.predicted_quantity))
+                              .map((f) => f.predicted_quantity || 0),
+                          ) * 1.1,
+                        ]}
                       />
                       <Tooltip
                         content={({ active, payload }) => {
