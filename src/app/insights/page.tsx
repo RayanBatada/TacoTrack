@@ -517,7 +517,7 @@ export default function InsightsPage() {
       >
         <div className="h-56">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={marginData} layout="vertical" margin={{ left: 200, right: 60, top: 5, bottom: 5 }}>
+            <BarChart data={marginData} layout="vertical" margin={{ left: 20, right: 220, top: 5, bottom: 5 }}>
               <XAxis
                 type="number"
                 tick={{ fontSize: 10, fill: "#d8b4fe" }}
@@ -532,7 +532,7 @@ export default function InsightsPage() {
                 tick={{ fontSize: 9, fill: "#d8b4fe" }}
                 axisLine={false}
                 tickLine={false}
-                width={190}
+                width={200}
               />
               <Tooltip contentStyle={tooltipStyle} />
               <Bar
