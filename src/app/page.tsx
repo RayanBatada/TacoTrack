@@ -88,10 +88,7 @@ export default function HomePage() {
   // AI CHATBOT STATE
   const [chatInput, setChatInput] = useState("");
   const [chatMessages, setChatMessages] = useState<
-    {
-      role: "user" | "bot";
-      text: string;
-    }[]
+    { role: "user" | "bot"; text: string }[]
   >([
     {
       role: "bot",
@@ -115,6 +112,9 @@ export default function HomePage() {
   } = useForecast();
   const [showForecast, setShowForecast] = useState(false);
   const [generating, setGenerating] = useState(false);
+
+  // ADD THIS - Animation progress for drawing the forecast line
+  const [forecastAnimProgress, setForecastAnimProgress] = useState(0);
 
   // FULLSCREEN CHAT STATE
   const [isChatFullscreen, setIsChatFullscreen] = useState(false);
@@ -142,10 +142,33 @@ export default function HomePage() {
   useEffect(() => {
     const interval = setInterval(() => {
       setAnimationFrame((prev) => (prev + 1) % 3);
-    }, 600); // 600ms per frame = ~1.8s full cycle (slow animation)
-
+    }, 600);
     return () => clearInterval(interval);
   }, []);
+
+  // ADD THIS NEW useEffect - Forecast line animation
+  useEffect(() => {
+    if (showForecast && forecast.length > 0) {
+      setForecastAnimProgress(0);
+
+      const duration = 2000;
+      const steps = 60;
+      const interval = duration / steps;
+      let currentStep = 0;
+
+      const animationInterval = setInterval(() => {
+        currentStep++;
+        setForecastAnimProgress(currentStep / steps);
+
+        if (currentStep >= steps) {
+          clearInterval(animationInterval);
+          setForecastAnimProgress(1);
+        }
+      }, interval);
+
+      return () => clearInterval(animationInterval);
+    }
+  }, [showForecast, forecast]);
 
   // ===========================================================================
   // FETCH DATA ON PAGE LOAD - Get all data from database
@@ -166,7 +189,7 @@ export default function HomePage() {
         if (ing.length > 0) setSelectedIngredient(ing[0].id);
         if (rec.length > 0) setSelectedDish(rec[0].id);
 
-        // ⬇️ ADD THIS: Auto-save inventory forecast to database
+        // Auto-save inventory forecast to database
         fetch("/api/inventory-forecast", { method: "POST" })
           .then((res) => res.json())
           .then((data) => {
@@ -235,9 +258,9 @@ export default function HomePage() {
   const avgFoodCost =
     recipes.length > 0
       ? Math.round(
-        recipes.reduce((s, r) => s + foodCostPercent(r, ingredients), 0) /
-        recipes.length,
-      )
+          recipes.reduce((s, r) => s + foodCostPercent(r, ingredients), 0) /
+            recipes.length,
+        )
       : 0;
 
   // ===========================================================================
@@ -461,7 +484,9 @@ export default function HomePage() {
           <div className="flex items-center justify-between mb-2 text-warning shrink-0">
             <div className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4" />
-              <h2 className="font-bold text-sm tracking-wide text-[15px]">TacoTalk AI - Full Screen</h2>
+              <h2 className="font-bold text-sm tracking-wide text-[15px]">
+                TacoTalk AI - Full Screen
+              </h2>
             </div>
             <button
               onClick={() => setIsChatFullscreen(false)}
@@ -496,7 +521,9 @@ export default function HomePage() {
                 <div
                   className={`max-w-[70%] rounded-lg px-3 py-2 ${msg.role === "user" ? "bg-primary/20 text-primary-foreground border border-primary/20" : "bg-secondary text-muted-foreground"} prose prose-sm prose-invert max-w-none break-words`}
                 >
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.text}</ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {msg.text}
+                  </ReactMarkdown>
                 </div>
               </div>
             ))}
@@ -564,10 +591,11 @@ export default function HomePage() {
                 return (
                   <div
                     key={item.id}
-                    className={`grid grid-cols-4 gap-3 px-3 py-2.5 rounded-lg border transition-colors ${isCritical
+                    className={`grid grid-cols-4 gap-3 px-3 py-2.5 rounded-lg border transition-colors ${
+                      isCritical
                         ? "bg-destructive/10 border-destructive/20"
                         : "bg-secondary/30 border-white/5 hover:bg-secondary/50"
-                      }`}
+                    }`}
                   >
                     <div className="flex items-center min-w-0">
                       <p className="text-xs font-semibold text-white truncate">
@@ -591,8 +619,9 @@ export default function HomePage() {
 
                     <div className="flex items-center justify-end">
                       <span
-                        className={`text-xs font-bold ${isCritical ? "text-destructive" : "text-white"
-                          }`}
+                        className={`text-xs font-bold ${
+                          isCritical ? "text-destructive" : "text-white"
+                        }`}
                       >
                         {item.days.toFixed(1)}d
                       </span>
@@ -630,12 +659,13 @@ export default function HomePage() {
                       ? "Switch to Dishes view to forecast"
                       : ""
                   }
-                  className={`ml-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border-2 border-white/30 ${trendView === "ingredients"
+                  className={`ml-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border-2 border-white/30 ${
+                    trendView === "ingredients"
                       ? "bg-secondary/30 text-muted-foreground cursor-not-allowed opacity-50"
                       : forecastLoading
                         ? "bg-primary/50 text-white cursor-wait"
                         : "bg-primary text-white hover:bg-primary/90 hover:border-white/60"
-                    }`}
+                  }`}
                 >
                   {forecastLoading ? "🔮 Forecasting..." : "🔮 AI Forecast"}
                 </button>
@@ -644,19 +674,21 @@ export default function HomePage() {
               <div className="flex bg-secondary rounded-lg p-1 border border-primary/20">
                 <button
                   onClick={() => handleTrendViewChange("ingredients")}
-                  className={`text-xs px-3 py-1.5 rounded-md transition-all ${trendView === "ingredients"
+                  className={`text-xs px-3 py-1.5 rounded-md transition-all ${
+                    trendView === "ingredients"
                       ? "bg-primary text-white shadow-sm"
                       : "text-muted-foreground hover:text-foreground"
-                    }`}
+                  }`}
                 >
                   Ingredients
                 </button>
                 <button
                   onClick={() => handleTrendViewChange("dishes")}
-                  className={`text-xs px-3 py-1.5 rounded-md transition-all ${trendView === "dishes"
+                  className={`text-xs px-3 py-1.5 rounded-md transition-all ${
+                    trendView === "dishes"
                       ? "bg-primary text-white shadow-sm"
                       : "text-muted-foreground hover:text-foreground"
-                    }`}
+                  }`}
                 >
                   Dishes
                 </button>
@@ -672,8 +704,9 @@ export default function HomePage() {
                   {getCurrentSelectionLabel()}
                 </span>
                 <ChevronDown
-                  className={`h-4 w-4 text-muted-foreground transition-transform ${isDropdownOpen ? "rotate-180" : ""
-                    }`}
+                  className={`h-4 w-4 text-muted-foreground transition-transform ${
+                    isDropdownOpen ? "rotate-180" : ""
+                  }`}
                 />
               </button>
 
@@ -681,29 +714,31 @@ export default function HomePage() {
                 <div className="absolute top-full left-0 right-0 mt-1 bg-secondary border border-primary/20 rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
                   {trendView === "ingredients"
                     ? ingredients.map((ing) => (
-                      <button
-                        key={ing.id}
-                        onClick={() => handleSelectionChange(ing.id)}
-                        className={`w-full px-3 py-2 text-left text-sm hover:bg-primary/10 transition-colors ${selectedIngredient === ing.id
-                            ? "bg-primary/20 text-primary font-semibold"
-                            : "text-foreground"
+                        <button
+                          key={ing.id}
+                          onClick={() => handleSelectionChange(ing.id)}
+                          className={`w-full px-3 py-2 text-left text-sm hover:bg-primary/10 transition-colors ${
+                            selectedIngredient === ing.id
+                              ? "bg-primary/20 text-primary font-semibold"
+                              : "text-foreground"
                           }`}
-                      >
-                        {ing.name}
-                      </button>
-                    ))
+                        >
+                          {ing.name}
+                        </button>
+                      ))
                     : recipes.map((recipe) => (
-                      <button
-                        key={recipe.id}
-                        onClick={() => handleSelectionChange(recipe.id)}
-                        className={`w-full px-3 py-2 text-left text-sm hover:bg-primary/10 transition-colors ${selectedDish === recipe.id
-                            ? "bg-primary/20 text-primary font-semibold"
-                            : "text-foreground"
+                        <button
+                          key={recipe.id}
+                          onClick={() => handleSelectionChange(recipe.id)}
+                          className={`w-full px-3 py-2 text-left text-sm hover:bg-primary/10 transition-colors ${
+                            selectedDish === recipe.id
+                              ? "bg-primary/20 text-primary font-semibold"
+                              : "text-foreground"
                           }`}
-                      >
-                        {recipe.name}
-                      </button>
-                    ))}
+                        >
+                          {recipe.name}
+                        </button>
+                      ))}
                 </div>
               )}
             </div>
@@ -711,7 +746,7 @@ export default function HomePage() {
             {/* The actual line graph OR forecast results */}
             <div className="flex-1 w-full min-h-0">
               {showForecast && forecast.length > 0 ? (
-                // SHOW FORECAST RESULTS
+                // SHOW FORECAST RESULTS WITH ANIMATION
                 <div className="h-full w-full bg-secondary/20 rounded-lg border border-white/5 p-0 relative">
                   <div className="absolute top-3 right-3 z-10">
                     <button
@@ -723,21 +758,51 @@ export default function HomePage() {
                   </div>
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart
-                      data={forecast.map(f => {
-                        const date = new Date(f.date);
-                        return {
-                          day: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][date.getDay()],
-                          value: f.predicted_quantity,
-                          fullDate: f.date,
-                          confidence: f.confidence
-                        };
-                      })}
+                      data={forecast
+                        .slice(
+                          0,
+                          Math.max(
+                            1,
+                            Math.ceil(forecast.length * forecastAnimProgress),
+                          ),
+                        )
+                        .map((f) => {
+                          const date = new Date(f.date);
+                          return {
+                            day: [
+                              "Sun",
+                              "Mon",
+                              "Tue",
+                              "Wed",
+                              "Thu",
+                              "Fri",
+                              "Sat",
+                            ][date.getDay()],
+                            value: f.predicted_quantity,
+                            fullDate: f.date,
+                            confidence: f.confidence,
+                          };
+                        })}
                       margin={{ top: 20, right: 10, left: 0, bottom: 20 }}
                     >
                       <defs>
-                        <linearGradient id="forecastGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#22d3ee" stopOpacity={0.4} />
-                          <stop offset="100%" stopColor="#22d3ee" stopOpacity={0} />
+                        <linearGradient
+                          id="forecastGrad"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="0%"
+                            stopColor="#22d3ee"
+                            stopOpacity={0.4}
+                          />
+                          <stop
+                            offset="100%"
+                            stopColor="#22d3ee"
+                            stopOpacity={0}
+                          />
                         </linearGradient>
                       </defs>
                       <XAxis
@@ -758,8 +823,15 @@ export default function HomePage() {
                           if (active && payload && payload.length) {
                             const data = payload[0].payload;
                             return (
-                              <div style={{ ...tooltipStyle, borderColor: "#22d3ee" }}>
-                                <p className="font-bold mb-1">{data.fullDate}</p>
+                              <div
+                                style={{
+                                  ...tooltipStyle,
+                                  borderColor: "#22d3ee",
+                                }}
+                              >
+                                <p className="font-bold mb-1">
+                                  {data.fullDate}
+                                </p>
                                 <p className="text-cyan-400 font-bold text-lg">
                                   {data.value} units
                                 </p>
@@ -771,7 +843,11 @@ export default function HomePage() {
                           }
                           return null;
                         }}
-                        cursor={{ stroke: "#22d3ee", strokeWidth: 1, strokeDasharray: "4 4" }}
+                        cursor={{
+                          stroke: "#22d3ee",
+                          strokeWidth: 1,
+                          strokeDasharray: "4 4",
+                        }}
                       />
                       <Area
                         type="monotone"
@@ -779,10 +855,14 @@ export default function HomePage() {
                         stroke="#22d3ee"
                         strokeWidth={3}
                         fill="url(#forecastGrad)"
-                        animationDuration={2000}
-                        animationEasing="ease-out"
+                        animationDuration={0}
                         dot={{ r: 4, fill: "#22d3ee", strokeWidth: 0 }}
-                        activeDot={{ r: 6, fill: "#fff", stroke: "#22d3ee", strokeWidth: 2 }}
+                        activeDot={{
+                          r: 6,
+                          fill: "#fff",
+                          stroke: "#22d3ee",
+                          strokeWidth: 2,
+                        }}
                       />
                     </AreaChart>
                   </ResponsiveContainer>
@@ -794,7 +874,8 @@ export default function HomePage() {
                       <span className="relative inline-flex rounded-full h-3 w-3 bg-cyan-500"></span>
                     </span>
                     <span className="text-xs font-bold text-cyan-400 tracking-wider shadow-black drop-shadow-md">
-                      LIVE AI PREDICTION
+                      LIVE AI PREDICTION{" "}
+                      {Math.round(forecastAnimProgress * 100)}%
                     </span>
                   </div>
                 </div>
@@ -897,8 +978,9 @@ export default function HomePage() {
               {chatMessages.map((msg, i) => (
                 <div
                   key={i}
-                  className={`flex items-center ${msg.role === "user" ? "justify-end" : "justify-start"
-                    } gap-3`}
+                  className={`flex items-center ${
+                    msg.role === "user" ? "justify-end" : "justify-start"
+                  } gap-3`}
                 >
                   {msg.role === "bot" && (
                     <div className="w-10 h-10 flex-shrink-0">
@@ -916,10 +998,11 @@ export default function HomePage() {
                     </div>
                   )}
                   <div
-                    className={`max-w-[85%] rounded-lg px-3 py-2 ${msg.role === "user"
+                    className={`max-w-[85%] rounded-lg px-3 py-2 ${
+                      msg.role === "user"
                         ? "bg-primary/20 text-primary-foreground border border-primary/20"
                         : "bg-secondary text-muted-foreground"
-                      } prose prose-sm prose-invert max-w-none break-words`}
+                    } prose prose-sm prose-invert max-w-none break-words`}
                   >
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
                       {msg.text}
@@ -977,45 +1060,48 @@ export default function HomePage() {
                     Total/wk
                   </p>
                   <p className="text-2xl font-bold text-foreground">
-                    ${wasteEntries.reduce((s, w) => s + w.costLost, 0).toFixed(0)}
+                    $
+                    {wasteEntries
+                      .reduce((s, w) => s + w.costLost, 0)
+                      .toFixed(0)}
                   </p>
                 </div>
               </div>
 
-            {wasteChartData.length > 0 && (
-              <div className="flex-1 flex items-center justify-center gap-3">
-                <div className="w-[55%] h-full flex items-center justify-center">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={wasteChartData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={32}
-                        outerRadius={62}
-                        paddingAngle={0}
-                        dataKey="value"
-                        isAnimationActive={false}
-                        stroke="#ffffff"
-                        strokeWidth={1.5}
-                      >
-                        {wasteChartData.map((entry, index) => (
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={WASTE_COLORS[index % WASTE_COLORS.length]}
-                          />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        contentStyle={tooltipStyle}
-                        formatter={(value: number) => [
-                          `$${value.toFixed(2)}`,
-                          "Cost",
-                        ]}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
+              {wasteChartData.length > 0 && (
+                <div className="flex-1 flex items-center justify-center gap-3">
+                  <div className="w-[55%] h-full flex items-center justify-center">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={wasteChartData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={32}
+                          outerRadius={62}
+                          paddingAngle={0}
+                          dataKey="value"
+                          isAnimationActive={false}
+                          stroke="#ffffff"
+                          strokeWidth={1.5}
+                        >
+                          {wasteChartData.map((entry, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={WASTE_COLORS[index % WASTE_COLORS.length]}
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          contentStyle={tooltipStyle}
+                          formatter={(value: number) => [
+                            `$${value.toFixed(2)}`,
+                            "Cost",
+                          ]}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
 
                   <div className="flex flex-col gap-2 justify-center text-[15px]">
                     {wasteChartData.map((item, idx) => (
@@ -1037,7 +1123,10 @@ export default function HomePage() {
                           <span className="font-semibold text-foreground leading-tight">
                             {(
                               (item.value /
-                                wasteChartData.reduce((s, d) => s + d.value, 0)) *
+                                wasteChartData.reduce(
+                                  (s, d) => s + d.value,
+                                  0,
+                                )) *
                               100
                             ).toFixed(0)}
                             %

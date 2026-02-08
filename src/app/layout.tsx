@@ -7,6 +7,7 @@ import Script from "next/script";
 import Image from "next/image";
 import Link from "next/link";
 import { BottomNav } from "@/components/bottom-nav";
+import FaviconAnimator from "@/components/FaviconAnimator";
 
 export const metadata: Metadata = {
   title: "Taco Track — Restaurant Inventory Management",
@@ -21,6 +22,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
+        <FaviconAnimator />
         <Script
           id="orchids-browser-logs"
           src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/scripts/orchids-browser-logs.js"
