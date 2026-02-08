@@ -1,36 +1,155 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TacoTrack
+
+AI-powered inventory management for restaurants. Built at UGAHacks 11 because we were tired of watching good food go to waste.
+
+## What is this?
+
+TacoTrack helps restaurants stop throwing away money (and food). It's got three main things:
+
+1. **TacoTalk AI** - A chatbot you can actually talk to about your inventory. Ask it "when should I reorder beef?" and it'll tell you. No spreadsheets required.
+
+2. **Demand Forecasting** - Uses machine learning to predict what you'll sell in the next 7 days. Turns out it's pretty accurate (99% according to our tests).
+
+3. **TacoTrack Wrapped** - Like Spotify Wrapped but for your restaurant. Shows off your top dishes and revenue in a way that's actually shareable on social media.
+
+Plus the usual stuff - inventory tracking, waste predictions, alerts when you're running low on ingredients, etc.
+
+## Why "TacoTrack"?
+
+Our team loves Taco Bell. Like, really loves it. We started thinking about how they manage to never run out of ingredients despite serving millions of tacos. Turns out most restaurants don't have those kinds of systems, and $162 billion worth of food gets wasted every year because of it.
+
+We figured we could fix that. Or at least try.
+
+## Tech Stack
+
+- Next.js 15 (React 19, TypeScript)
+- Supabase for the database (PostgreSQL)
+- Google Gemini AI for the chatbot
+- Tailwind CSS because we're not monsters
+- Framer Motion for animations
+- Recharts for the graphs
+
+The forecasting algorithm is custom - analyzes sales patterns and projects demand forward. Nothing too fancy but it works.
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
+- Node.js 18 or higher
+- A Supabase account (free tier works)
+- A Gemini API key from Google
+
+### Installation
+
+1. Clone the repo:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/RayanBatada/TacoTrack.git
+cd TacoTrack
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Install dependencies:
+```bash
+npm install
+# or if you use pnpm
+pnpm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Set up your environment variables:
+```bash
+cp .env.example .env.local
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Then fill in your actual keys in `.env.local`:
+- `NEXT_PUBLIC_SUPABASE_URL` - Get this from your Supabase project settings
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Also from Supabase
+- `GEMINI_API_KEY` - From Google AI Studio (https://ai.google.dev/)
+- `NEXT_PUBLIC_BASE_URL` - Just use `http://localhost:3000` for local dev
 
-## Learn More
+4. Set up the database:
 
-To learn more about Next.js, take a look at the following resources:
+Go to your Supabase project and run the SQL scripts in the `/database` folder. You'll need to:
+- Create the tables (schema.sql)
+- Add some sample data (seed.sql)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+5. Run the dev server:
+```bash
+npm run dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Open http://localhost:3000 and you should see the landing page.
 
-## Deploy on Vercel
+## Features Worth Mentioning
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+**The AI Chat Actually Works**
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Most AI chatbots give you generic answers. This one has access to your actual inventory data, so when you ask "what's going to expire soon?" it tells you the real answer with actual quantities and costs.
+
+**Forecast Visualizations**
+
+The forecast chart has this animation where the line draws itself across the graph. Took way too long to get right but it looks cool.
+
+**Real-Time Calculations**
+
+Everything updates instantly - days of stock remaining, reorder suggestions, waste predictions. No waiting around for reports to generate.
+
+**It's Actually Responsive**
+
+Works on mobile, tablet, desktop. We tested it.
+
+## What We're Working On
+
+- Multi-restaurant support (right now it's built for one location)
+- Connecting to POS systems like Toast and Square
+- Mobile apps for iOS and Android
+- Better ML models (thinking about using Prophet or LSTM)
+- Actually letting you place orders directly with suppliers
+
+## Known Issues
+
+- The Supabase CLI warnings in the build logs are annoying but harmless
+- Forecast generation can be slow if you have years of historical data (we only tested with a few months)
+- The landing page scroll animations might be choppy on older devices
+- There's no user authentication yet (everything is open)
+
+## Contributing
+
+If you want to contribute, cool. Just fork the repo, make your changes, and open a PR. Please don't break the build.
+
+Try to match the existing code style - we use TypeScript for everything and Tailwind for styling.
+
+## Hackathon Notes
+
+Built in 36 hours at UGAHacks 11. We had some team conflicts around hour 30 when everyone was exhausted, learned the hard way not to use `git push --force`, and dealt with way too many merge conflicts.
+
+But we shipped it. The demo worked. The judges liked it.
+
+Some things we wanted to add but didn't have time:
+- Email alerts for critical stock
+- Integration with accounting software
+- Recipe builder with cost calculations
+- Waste analytics dashboard
+- Voice commands for the AI
+
+Maybe next time.
+
+## License
+
+MIT - do whatever you want with it.
+
+## Team
+
+Built by Rayan Batada and Zayanh1 at UGAHacks 11.
+
+Powered by coffee, Taco Bell, and the kind of sleep deprivation that makes you think a taco-themed inventory app is a good idea at 3 AM.
+
+(It was.)
+
+## Links
+
+- Live Demo: https://taco-track.vercel.app
+- Devpost: [Add your Devpost link]
+- Presentation: [Add slides link]
+
+---
+
+If you use this and it helps your restaurant waste less food, let us know. That would be pretty cool.
