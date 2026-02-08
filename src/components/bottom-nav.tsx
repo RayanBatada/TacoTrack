@@ -21,7 +21,7 @@ export function BottomNav() {
   const [showAccountMenu, setShowAccountMenu] = useState(false);
 
   const navItems = [
-    { href: "/", label: "Dashboard", icon: Home },
+    { href: "/dashboard", label: "Dashboard", icon: Home },
     { href: "/inventory", label: "Inventory", icon: Package },
     { href: "/recipes", label: "Recipes", icon: ChefHat },
     { href: "/orders", label: "Orders", icon: ShoppingCart },
@@ -35,12 +35,11 @@ export function BottomNav() {
       <div className="relative h-32 w-full border-b border-primary/20 overflow-hidden">
         <Link href="/">
           <Image
-            src="/header.png"
+            src="/newlogo.jpg"
             alt="Taco Track Header"
             fill
             priority
             className="object-cover"
-            style={{ objectPosition: "20% 40%" }}
           />
         </Link>
       </div>

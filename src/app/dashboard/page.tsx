@@ -1,0 +1,1184 @@
+// app/page.tsx
+// =============================================================================
+// TACOTRACK DASHBOARD - MAIN PAGE
+// This is the main dashboard that shows inventory, trends, AI chat, and waste
+// =============================================================================
+
+"use client";
+
+// =============================================================================
+// IMPORTS - All the tools and components we need
+// =============================================================================
+import { useState, useEffect, useRef } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { chatWithGemini } from "../actions";
+import { useForecast } from "@/lib/useForecast";
+
+// Icons from lucide-react library
+import {
+  Package,
+  UtensilsCrossed,
+  MessageSquare,
+  Send,
+  AlertTriangle,
+  CheckCircle2,
+  AlertOctagon,
+  Activity,
+  ChevronDown,
+  Maximize2,
+  X,
+} from "lucide-react";
+
+// Data functions and types from our database
+import {
+  daysOfStock,
+  avgDailyUsage,
+  foodCostPercent,
+  topSellingItems,
+  suggestedOrderQty,
+  predictWaste,
+  type Recipe,
+  type Ingredient,
+  type WasteEntry,
+} from "@/lib/data";
+
+// Cached data fetchers for instant page loads
+import { getRecipes, getIngredients, getWasteEntries } from "@/lib/cache";
+
+// Chart components from recharts library
+// @ts-expect-error Cell has deprecation warning but is required for the PieChart
+import {
+  AreaChart,
+  Area,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+  Tooltip,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
+
+// =============================================================================
+// STYLING - Tooltip style for charts
+// =============================================================================
+const tooltipStyle = {
+  background: "#2e1065",
+  border: "1px solid rgba(217, 70, 239, 0.2)",
+  borderRadius: "8px",
+  fontSize: 12,
+  color: "#ffffff",
+  padding: "8px 12px",
+};
+
+// =============================================================================
+// MAIN COMPONENT - The whole dashboard
+// =============================================================================
+export default function HomePage() {
+  // ===========================================================================
+  // STATE MANAGEMENT - Variables that track data and user interactions
+  // ===========================================================================
+
+  // DATA FROM DATABASE
+  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [wasteEntries, setWasteEntries] = useState<WasteEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // AI CHATBOT STATE
+  const [chatInput, setChatInput] = useState("");
+  const [chatMessages, setChatMessages] = useState<
+    { role: "user" | "bot"; text: string }[]
+  >([
+    {
+      role: "bot",
+      text: "Hola! I'm Taco Talk. 🌮 specialized in spicy inventory management. How can I help?",
+    },
+  ]);
+
+  // TRENDS GRAPH STATE
+  const [trendView, setTrendView] = useState<"ingredients" | "dishes">(
+    "ingredients",
+  );
+  const [selectedIngredient, setSelectedIngredient] = useState<string>("");
+  const [selectedDish, setSelectedDish] = useState<string>("");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  // FORECAST STATE
+  const {
+    forecast,
+    loading: forecastLoading,
+    generateForecast,
+  } = useForecast();
+  const [showForecast, setShowForecast] = useState(false);
+  const [generating, setGenerating] = useState(false);
+
+  // ADD THIS - Animation progress for drawing the forecast line
+  const [forecastAnimProgress, setForecastAnimProgress] = useState(0);
+
+  // FULLSCREEN CHAT STATE
+  const [isChatFullscreen, setIsChatFullscreen] = useState(false);
+
+  // ANIMATION STATE FOR AI CHARACTER
+  const [animationFrame, setAnimationFrame] = useState(0);
+
+  // REFERENCE FOR AUTO-SCROLLING CHAT
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // ===========================================================================
+  // AUTO-SCROLL FUNCTION - Keeps chat scrolled to bottom
+  // ===========================================================================
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [chatMessages]);
+
+  // ===========================================================================
+  // ANIMATION LOOP - Cycle through character frames slowly
+  // ===========================================================================
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setAnimationFrame((prev) => (prev + 1) % 3);
+    }, 600);
+    return () => clearInterval(interval);
+  }, []);
+
+  // ADD THIS NEW useEffect - Forecast line animation
+  useEffect(() => {
+    if (showForecast && forecast.length > 0) {
+      setForecastAnimProgress(0);
+
+      const duration = 2000;
+      const steps = 60;
+      const interval = duration / steps;
+      let currentStep = 0;
+
+      const animationInterval = setInterval(() => {
+        currentStep++;
+        setForecastAnimProgress(currentStep / steps);
+
+        if (currentStep >= steps) {
+          clearInterval(animationInterval);
+          setForecastAnimProgress(1);
+        }
+      }, interval);
+
+      return () => clearInterval(animationInterval);
+    }
+  }, [showForecast, forecast]);
+
+  // ===========================================================================
+  // FETCH DATA ON PAGE LOAD - Get all data from database
+  // ===========================================================================
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [ing, rec, waste] = await Promise.all([
+          getIngredients(),
+          getRecipes(),
+          getWasteEntries(),
+        ]);
+
+        setIngredients(ing);
+        setRecipes(rec);
+        setWasteEntries(waste);
+
+        if (ing.length > 0) setSelectedIngredient(ing[0].id);
+        if (rec.length > 0) setSelectedDish(rec[0].id);
+
+        // Auto-save inventory forecast to database
+        fetch("/api/inventory-forecast", { method: "POST" })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.success) {
+              console.log("✅ Inventory forecast saved:", {
+                total: data.totalForecasts,
+                critical: data.critical,
+                warning: data.warning,
+              });
+            }
+          })
+          .catch((err) =>
+            console.error("Failed to save inventory forecast:", err),
+          );
+      } catch (error) {
+        console.error("Error loading data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
+
+  // ===========================================================================
+  // DATA CALCULATIONS - Process raw data for display
+  // ===========================================================================
+
+  const stockItems = ingredients
+    .map((i) => ({
+      ...i,
+      days: daysOfStock(i),
+      avgUsage: avgDailyUsage(i.dailyUsage || []),
+      value: i.onHand * i.costPerUnit,
+      suggestedQty: suggestedOrderQty(i),
+    }))
+    .sort((a, b) => a.days - b.days);
+
+  const criticalItems = stockItems.filter((i) => i.days <= 2);
+  const watchItems = stockItems.filter((i) => i.days > 2 && i.days <= 4);
+
+  const systemStatus =
+    criticalItems.length > 0
+      ? "Critical"
+      : watchItems.length > 0
+        ? "Watch"
+        : "Healthy";
+
+  const statusColor =
+    systemStatus === "Critical"
+      ? "text-destructive"
+      : systemStatus === "Watch"
+        ? "text-warning"
+        : "text-success";
+
+  const StatusIcon =
+    systemStatus === "Critical"
+      ? AlertOctagon
+      : systemStatus === "Watch"
+        ? AlertTriangle
+        : CheckCircle2;
+
+  const totalInventoryValue = stockItems.reduce(
+    (acc, item) => acc + item.value,
+    0,
+  );
+  const avgFoodCost =
+    recipes.length > 0
+      ? Math.round(
+          recipes.reduce((s, r) => s + foodCostPercent(r, ingredients), 0) /
+            recipes.length,
+        )
+      : 0;
+
+  // ===========================================================================
+  // TREND DATA PREPARATION - Data for the line graph
+  // ===========================================================================
+
+  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+  const getIngredientTrendData = (ingredientId: string) => {
+    const ingredient = ingredients.find((ing) => ing.id === ingredientId);
+    return Array.from({ length: 7 }, (_, i) => ({
+      day: dayNames[i],
+      value: ingredient?.dailyUsage?.[i] || 0,
+      type: "Usage",
+    }));
+  };
+
+  const getDishTrendData = (dishId: string) => {
+    const dish = recipes.find((r) => r.id === dishId);
+    if (!dish || !dish.dailySales) return [];
+
+    return Array.from({ length: 7 }, (_, i) => ({
+      day: dayNames[i],
+      value: dish.dailySales[i] || 0,
+      type: "Sales",
+    }));
+  };
+
+  const activeTrendData =
+    trendView === "ingredients"
+      ? getIngredientTrendData(selectedIngredient)
+      : getDishTrendData(selectedDish);
+
+  const getCurrentSelectionLabel = () => {
+    if (trendView === "ingredients") {
+      const ing = ingredients.find((i) => i.id === selectedIngredient);
+      return ing?.name || "Select Ingredient";
+    } else {
+      const dish = recipes.find((r) => r.id === selectedDish);
+      return dish?.name || "Select Dish";
+    }
+  };
+
+  // ===========================================================================
+  // WASTE DATA PREPARATION - For pie chart
+  // ===========================================================================
+
+  const topSellers = topSellingItems(recipes, ingredients);
+  const bottomThree = topSellers.slice(-3).reverse();
+
+  const WASTE_COLORS = [
+    "#ef4444",
+    "#f97316",
+    "#eab308",
+    "#84cc16",
+    "#22c55e",
+    "#06b6d4",
+  ];
+
+  // ===========================================================================
+  // EVENT HANDLERS - What happens when user interacts
+  // ===========================================================================
+
+  const handleChat = async () => {
+    if (!chatInput.trim()) return;
+    const userMsg = chatInput.trim();
+
+    setChatInput("");
+    setChatMessages((prev) => [...prev, { role: "user", text: userMsg }]);
+
+    // Check if user is asking for a forecast
+    const forecastKeywords = [
+      "forecast",
+      "predict",
+      "sales forecast",
+      "demand forecast",
+      "upcoming",
+    ];
+    const isForecastRequest = forecastKeywords.some((keyword) =>
+      userMsg.toLowerCase().includes(keyword),
+    );
+
+    if (isForecastRequest && selectedDish) {
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          role: "bot",
+          text: "🔮 Generating AI forecast for the next 7 days...",
+        },
+      ]);
+      try {
+        await generateForecast(selectedDish, 7);
+        setChatMessages((prev) => {
+          const history = [...prev];
+          history[history.length - 1] = {
+            role: "bot",
+            text: "📊 Forecast complete! Check the Trends section to see predictions by day. This helps you prep the right quantities and avoid waste.",
+          };
+          return history;
+        });
+      } catch (e) {
+        setChatMessages((prev) => {
+          const history = [...prev];
+          history[history.length - 1] = {
+            role: "bot",
+            text: "Sorry, I couldn't generate the forecast. Make sure you've selected a dish.",
+          };
+          return history;
+        });
+      }
+      return;
+    }
+
+    // Otherwise use Gemini AI
+    setChatMessages((prev) => [
+      ...prev,
+      { role: "bot", text: "Consulting the inventory..." },
+    ]);
+
+    try {
+      const response = await chatWithGemini(userMsg);
+      setChatMessages((prev) => {
+        const history = [...prev];
+        history.pop();
+        return [...history, { role: "bot", text: response }];
+      });
+    } catch (e) {
+      setChatMessages((prev) => {
+        const history = [...prev];
+        history.pop();
+        return [
+          ...history,
+          { role: "bot", text: "Error: Could not reach the AI." },
+        ];
+      });
+    }
+  };
+
+  const handleTrendViewChange = (view: "ingredients" | "dishes") => {
+    setTrendView(view);
+    setShowForecast(false);
+    if (view === "ingredients" && ingredients.length > 0) {
+      setSelectedIngredient(ingredients[0].id);
+    } else if (view === "dishes" && recipes.length > 0) {
+      setSelectedDish(recipes[0].id);
+    }
+    setIsDropdownOpen(false);
+  };
+
+  const handleSelectionChange = (id: string) => {
+    if (trendView === "ingredients") {
+      setSelectedIngredient(id);
+    } else {
+      setSelectedDish(id);
+    }
+    setShowForecast(false);
+    setIsDropdownOpen(false);
+  };
+
+  const handleGenerateForecasts = async () => {
+    setGenerating(true);
+    try {
+      const response = await fetch("/api/generate-forecasts", {
+        method: "POST",
+      });
+      const data = await response.json();
+
+      if (data.success) {
+        alert(
+          `✅ Success! Generated ${data.totalForecasts} forecasts for ${data.recipesProcessed} recipes`,
+        );
+      } else {
+        alert(`❌ Error: ${data.error}`);
+      }
+    } catch (error) {
+      console.error("Generation error:", error);
+      alert("❌ Failed to generate forecasts. Check console for details.");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  // ===========================================================================
+  // LOADING STATE - Show while data is loading
+  // ===========================================================================
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center gap-2">
+          <Package className="h-5 w-5 text-primary animate-pulse" />
+          <p className="text-muted-foreground">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ===========================================================================
+  // FULLSCREEN CHAT RENDER - Expanded chat view
+  // ===========================================================================
+  if (isChatFullscreen) {
+    return (
+      <div className="fixed inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-6 z-50 flex flex-col font-inter">
+        <div className="glass-card rounded-xl p-5 flex flex-col h-full relative">
+          <div className="flex items-center justify-between mb-2 text-warning shrink-0">
+            <div className="flex items-center gap-2">
+              <MessageSquare className="h-4 w-4" />
+              <h2 className="font-bold text-sm tracking-wide text-[15px]">
+                TacoTalk AI - Full Screen
+              </h2>
+            </div>
+            <button
+              onClick={() => setIsChatFullscreen(false)}
+              className="p-1 hover:bg-secondary/30 rounded-md transition-colors"
+              title="Exit fullscreen"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto space-y-3 mb-3 pr-2 text-sm min-h-0">
+            {chatMessages.map((msg, i) => (
+              <div
+                key={i}
+                className={`flex items-center ${msg.role === "user" ? "justify-end" : "justify-start"} gap-3`}
+              >
+                {msg.role === "bot" && (
+                  <div className="w-10 h-10 flex-shrink-0">
+                    <img
+                      src={
+                        animationFrame === 0
+                          ? "/BellFrame1.png"
+                          : animationFrame === 1
+                            ? "/BellFrame2.png"
+                            : "/BellFrame3.png"
+                      }
+                      alt="Taco Talk"
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                )}
+                <div
+                  className={`max-w-[70%] rounded-lg px-3 py-2 ${msg.role === "user" ? "bg-primary/20 text-primary-foreground border border-primary/20" : "bg-secondary text-muted-foreground"} prose prose-sm prose-invert max-w-none break-words`}
+                >
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {msg.text}
+                  </ReactMarkdown>
+                </div>
+              </div>
+            ))}
+            <div ref={messagesEndRef} />
+          </div>
+
+          <div className="mt-auto">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleChat()}
+                placeholder="Ask Taco Talk..."
+                className="flex-1 rounded-md border border-primary/20 bg-secondary px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none"
+              />
+              <button
+                onClick={handleChat}
+                className="h-8 w-8 flex items-center justify-center rounded-md bg-primary/20 text-primary hover:bg-primary/30"
+              >
+                <Send className="h-3 w-3" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ===========================================================================
+  // MAIN RENDER - The actual dashboard UI
+  // ===========================================================================
+  return (
+    <div className="h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-6 font-inter overflow-hidden flex flex-col">
+      <div className="flex-1 min-h-0 flex flex-col space-y-4">
+        {/* TOP SECTION - Action Required & Trends */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 min-h-0">
+          {/* LEFT COLUMN - ACTION REQUIRED TABLE */}
+          <div className="glass-card rounded-xl p-5 flex flex-col relative overflow-hidden">
+            <div className="flex items-center gap-2 mb-4 text-white">
+              <AlertTriangle className="h-5 w-5" />
+              <h2 className="font-bold tracking-wide">ACTION REQUIRED</h2>
+            </div>
+
+            <div className="grid grid-cols-4 gap-3 mb-3 px-2">
+              <div className="text-xs font-semibold text-white uppercase tracking-wider">
+                Product
+              </div>
+              <div className="text-xs font-semibold text-white uppercase tracking-wider">
+                Qty Needed
+              </div>
+              <div className="text-xs font-semibold text-white uppercase tracking-wider text-center">
+                Status
+              </div>
+              <div className="text-xs font-semibold text-white uppercase tracking-wider text-right">
+                Urgency
+              </div>
+            </div>
+
+            <div className="border-t border-white/10 mb-3" />
+
+            <div className="space-y-2">
+              {stockItems.slice(0, 5).map((item) => {
+                const isCritical = item.days <= 2;
+                return (
+                  <div
+                    key={item.id}
+                    className={`grid grid-cols-4 gap-3 px-3 py-2.5 rounded-lg border transition-colors ${
+                      isCritical
+                        ? "bg-destructive/10 border-destructive/20"
+                        : "bg-secondary/30 border-white/5 hover:bg-secondary/50"
+                    }`}
+                  >
+                    <div className="flex items-center min-w-0">
+                      <p className="text-xs font-semibold text-white truncate">
+                        {item.name}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center">
+                      <span className="text-xs font-semibold text-white">
+                        {item.suggestedQty}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-center">
+                      {isCritical && (
+                        <span className="bg-destructive text-white text-[8px] px-2 py-1 rounded-full uppercase font-bold">
+                          Order Now
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-end">
+                      <span
+                        className={`text-xs font-bold ${
+                          isCritical ? "text-destructive" : "text-white"
+                        }`}
+                      >
+                        {item.days.toFixed(1)}d
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {stockItems.length === 0 && (
+                <div className="text-sm text-white/60 text-center py-4">
+                  No actions required.
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* RIGHT COLUMN - TRENDS GRAPH */}
+          <div className="glass-card rounded-xl p-5 flex flex-col">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Activity className="h-5 w-5 text-primary" />
+                <h2 className="font-bold tracking-wide">TRENDS</h2>
+
+                {/* Forecast button next to title - always visible */}
+                <button
+                  onClick={() => {
+                    if (trendView === "dishes" && selectedDish) {
+                      generateForecast(selectedDish, 7);
+                      setShowForecast(true);
+                    }
+                  }}
+                  disabled={forecastLoading || trendView === "ingredients"}
+                  title={
+                    trendView === "ingredients"
+                      ? "Switch to Dishes view to forecast"
+                      : ""
+                  }
+                  className={`ml-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border-2 border-white/30 ${
+                    trendView === "ingredients"
+                      ? "bg-secondary/30 text-muted-foreground cursor-not-allowed opacity-50"
+                      : forecastLoading
+                        ? "bg-primary/50 text-white cursor-wait"
+                        : "bg-primary text-white hover:bg-primary/90 hover:border-white/60"
+                  }`}
+                >
+                  {forecastLoading ? "🔮 Forecasting..." : "🔮 AI Forecast"}
+                </button>
+              </div>
+
+              <div className="flex bg-secondary rounded-lg p-1 border border-primary/20">
+                <button
+                  onClick={() => handleTrendViewChange("ingredients")}
+                  className={`text-xs px-3 py-1.5 rounded-md transition-all ${
+                    trendView === "ingredients"
+                      ? "bg-primary text-white shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Ingredients
+                </button>
+                <button
+                  onClick={() => handleTrendViewChange("dishes")}
+                  className={`text-xs px-3 py-1.5 rounded-md transition-all ${
+                    trendView === "dishes"
+                      ? "bg-primary text-white shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Dishes
+                </button>
+              </div>
+            </div>
+
+            <div className="mb-3 relative">
+              <button
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="w-full flex items-center justify-between px-3 py-2 bg-secondary/50 border border-primary/20 rounded-lg hover:bg-secondary/70 transition-colors text-sm"
+              >
+                <span className="text-foreground">
+                  {getCurrentSelectionLabel()}
+                </span>
+                <ChevronDown
+                  className={`h-4 w-4 text-muted-foreground transition-transform ${
+                    isDropdownOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+
+              {isDropdownOpen && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-secondary border border-primary/20 rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
+                  {trendView === "ingredients"
+                    ? ingredients.map((ing) => (
+                        <button
+                          key={ing.id}
+                          onClick={() => handleSelectionChange(ing.id)}
+                          className={`w-full px-3 py-2 text-left text-sm hover:bg-primary/10 transition-colors ${
+                            selectedIngredient === ing.id
+                              ? "bg-primary/20 text-primary font-semibold"
+                              : "text-foreground"
+                          }`}
+                        >
+                          {ing.name}
+                        </button>
+                      ))
+                    : recipes.map((recipe) => (
+                        <button
+                          key={recipe.id}
+                          onClick={() => handleSelectionChange(recipe.id)}
+                          className={`w-full px-3 py-2 text-left text-sm hover:bg-primary/10 transition-colors ${
+                            selectedDish === recipe.id
+                              ? "bg-primary/20 text-primary font-semibold"
+                              : "text-foreground"
+                          }`}
+                        >
+                          {recipe.name}
+                        </button>
+                      ))}
+                </div>
+              )}
+            </div>
+
+            {/* The actual line graph OR forecast results */}
+            <div className="flex-1 w-full min-h-0">
+              {showForecast && forecast.length > 0 ? (
+                // SHOW FORECAST RESULTS WITH ANIMATION
+                <div className="h-full w-full bg-secondary/20 rounded-lg border border-white/5 p-0 relative">
+                  <div className="absolute top-3 right-3 z-10">
+                    <button
+                      onClick={() => setShowForecast(false)}
+                      className="text-xs bg-black/40 hover:bg-black/60 text-white px-2 py-1 rounded transition-colors backdrop-blur-sm"
+                    >
+                      Close Forecast
+                    </button>
+                  </div>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart
+                      data={forecast
+                        .slice(
+                          0,
+                          Math.max(
+                            1,
+                            Math.ceil(
+                              forecast.length *
+                                Math.min(1, forecastAnimProgress * 2),
+                            ),
+                          ),
+                        )
+                        .map((f) => {
+                          const date = new Date(f.date);
+                          return {
+                            day: [
+                              "Sun",
+                              "Mon",
+                              "Tue",
+                              "Wed",
+                              "Thu",
+                              "Fri",
+                              "Sat",
+                            ][date.getDay()],
+                            value: f.predicted_quantity,
+                            fullDate: f.date,
+                            confidence: f.confidence,
+                          };
+                        })}
+                      margin={{ top: 40, right: 5, left: 5, bottom: 10 }}
+                    >
+                      <defs>
+                        <linearGradient
+                          id="forecastGrad"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="0%"
+                            stopColor="#22d3ee"
+                            stopOpacity={0.4}
+                          />
+                          <stop
+                            offset="100%"
+                            stopColor="#22d3ee"
+                            stopOpacity={0}
+                          />
+                        </linearGradient>
+                        <style>{`
+                          @keyframes drawStroke {
+                            0% {
+                              stroke-dashoffset: 2000;
+                              opacity: 0;
+                            }
+                            50% {
+                              stroke-dashoffset: 2000;
+                              opacity: 0;
+                            }
+                            51% {
+                              opacity: 1;
+                            }
+                            100% {
+                              stroke-dashoffset: 0;
+                              opacity: 1;
+                            }
+                          }
+                          .forecast-stroke {
+                            animation: drawStroke 2s ease-in-out forwards;
+                            stroke-dasharray: 2000;
+                          }
+                        `}</style>
+                      </defs>
+                      <XAxis
+                        dataKey="day"
+                        tick={{ fontSize: 10, fill: "#a1a1aa" }}
+                        axisLine={false}
+                        tickLine={false}
+                        height={45}
+                      />
+                      <YAxis
+                        tick={{ fontSize: 10, fill: "#a1a1aa" }}
+                        axisLine={false}
+                        tickLine={false}
+                        width={40}
+                        domain={[
+                          0,
+                          Math.max(
+                            140,
+                            ...forecast
+                              .filter((f) => isFinite(f.predicted_quantity))
+                              .map((f) => f.predicted_quantity || 0),
+                          ) * 1.1,
+                        ]}
+                      />
+                      <Tooltip
+                        content={({ active, payload }) => {
+                          if (active && payload && payload.length) {
+                            const data = payload[0].payload;
+                            return (
+                              <div
+                                style={{
+                                  ...tooltipStyle,
+                                  borderColor: "#22d3ee",
+                                }}
+                              >
+                                <p className="font-bold mb-1">
+                                  {data.fullDate}
+                                </p>
+                                <p className="text-cyan-400 font-bold text-lg">
+                                  {data.value} units
+                                </p>
+                                <p className="text-xs capitalize text-white/70">
+                                  Confidence: {data.confidence}
+                                </p>
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                        cursor={{
+                          stroke: "#22d3ee",
+                          strokeWidth: 1,
+                          strokeDasharray: "4 4",
+                        }}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="value"
+                        stroke="#22d3ee"
+                        strokeWidth={3}
+                        fill="url(#forecastGrad)"
+                        className={
+                          forecastAnimProgress > 0 ? "forecast-stroke" : ""
+                        }
+                        dot={(props) => {
+                          const { cx, cy } = props;
+                          // Dots fade in during first 50% of animation as they appear
+                          const dotFadeProgress = Math.min(
+                            1,
+                            forecastAnimProgress * 4,
+                          );
+                          return (
+                            <circle
+                              cx={cx}
+                              cy={cy}
+                              r={4 * dotFadeProgress}
+                              fill="#22d3ee"
+                              fillOpacity={dotFadeProgress * 0.8}
+                              strokeWidth={0}
+                            />
+                          );
+                        }}
+                        activeDot={{
+                          r: 6,
+                          fill: "#fff",
+                          stroke: "#22d3ee",
+                          strokeWidth: 2,
+                        }}
+                        isAnimationActive={false}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+
+                  {/* Live Prediction Overlay Badge */}
+                  <div className="absolute top-3 left-12 flex items-center gap-2 pointer-events-none">
+                    <span className="relative flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-cyan-500"></span>
+                    </span>
+                    <span className="text-xs font-bold text-cyan-400 tracking-wider shadow-black drop-shadow-md">
+                      LIVE AI PREDICTION{" "}
+                      {Math.round(forecastAnimProgress * 100)}%
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                // SHOW TREND GRAPH
+                <div className="h-full w-full bg-secondary/20 rounded-lg border border-white/5 p-0 relative">
+                  {activeTrendData && activeTrendData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart
+                        data={activeTrendData}
+                        margin={{ top: 40, right: 5, left: 5, bottom: 10 }}
+                      >
+                        <defs>
+                          <linearGradient
+                            id="trendGrad"
+                            x1="0"
+                            y1="0"
+                            x2="0"
+                            y2="1"
+                          >
+                            <stop
+                              offset="0%"
+                              stopColor="#d946ef"
+                              stopOpacity={0.3}
+                            />
+                            <stop
+                              offset="100%"
+                              stopColor="#d946ef"
+                              stopOpacity={0}
+                            />
+                          </linearGradient>
+                        </defs>
+
+                        <XAxis
+                          dataKey="day"
+                          tick={{ fontSize: 10, fill: "#a1a1aa" }}
+                          axisLine={false}
+                          tickLine={false}
+                          interval={0}
+                          height={45}
+                          padding={{ left: 10, right: 10 }}
+                        />
+
+                        <YAxis
+                          tick={{ fontSize: 10, fill: "#a1a1aa" }}
+                          axisLine={false}
+                          tickLine={false}
+                          width={40}
+                          allowDecimals={false}
+                        />
+
+                        <Tooltip
+                          contentStyle={tooltipStyle}
+                          cursor={{ stroke: "#d946ef", strokeWidth: 1 }}
+                          formatter={(value: number) => [
+                            Math.round(value),
+                            trendView === "ingredients" ? "Usage" : "Sales",
+                          ]}
+                        />
+
+                        <Area
+                          type="monotone"
+                          dataKey="value"
+                          stroke="#d946ef"
+                          strokeWidth={3}
+                          fill="url(#trendGrad)"
+                          animationDuration={1000}
+                          dot={false}
+                          activeDot={{ r: 5, fill: "#d946ef" }}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                      No trend data available.
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* BOTTOM SECTION - TacoTalk AI Chat & Waste Indicator */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 min-h-0">
+          {/* LEFT COLUMN - TACOTALK AI CHATBOT */}
+          <div className="glass-card rounded-xl p-5 flex flex-col relative h-full min-h-0">
+            <div className="flex items-center justify-between gap-2 mb-2 text-warning shrink-0">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="h-4 w-4" />
+                <h2 className="font-bold text-sm tracking-wide text-[15px]">
+                  TacoTalk AI
+                </h2>
+              </div>
+              <button
+                onClick={() => setIsChatFullscreen(true)}
+                className="p-1 hover:bg-secondary/30 rounded-md transition-colors"
+                title="Expand to fullscreen"
+              >
+                <Maximize2 className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-3 mb-3 pr-1 text-sm min-h-0">
+              {chatMessages.map((msg, i) => (
+                <div
+                  key={i}
+                  className={`flex items-center ${
+                    msg.role === "user" ? "justify-end" : "justify-start"
+                  } gap-3`}
+                >
+                  {msg.role === "bot" && (
+                    <div className="w-10 h-10 flex-shrink-0">
+                      <img
+                        src={
+                          animationFrame === 0
+                            ? "/BellFrame1.png"
+                            : animationFrame === 1
+                              ? "/BellFrame2.png"
+                              : "/BellFrame3.png"
+                        }
+                        alt="Taco Talk"
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                  )}
+                  <div
+                    className={`max-w-[85%] rounded-lg px-3 py-2 ${
+                      msg.role === "user"
+                        ? "bg-primary/20 text-primary-foreground border border-primary/20"
+                        : "bg-secondary text-muted-foreground"
+                    } prose prose-sm prose-invert max-w-none break-words`}
+                  >
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {msg.text}
+                    </ReactMarkdown>
+                  </div>
+                </div>
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
+
+            <div className="mt-auto">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleChat()}
+                  placeholder="Ask Taco Talk..."
+                  className="flex-1 rounded-md border border-primary/20 bg-secondary px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none"
+                />
+                <button
+                  onClick={handleChat}
+                  className="h-8 w-8 flex items-center justify-center rounded-md bg-primary/20 text-primary hover:bg-primary/30"
+                >
+                  <Send className="h-3 w-3" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* RIGHT COLUMN - FOOD FOR THOUGHT */}
+          <div className="glass-card rounded-xl p-5 flex flex-col">
+            <div className="flex items-center gap-2 mb-4 text-white">
+              <UtensilsCrossed className="h-4 w-4" />
+              <h2 className="font-bold text-sm tracking-wide text-[15px]">
+                FOOD FOR THOUGHT
+              </h2>
+            </div>
+
+            {/* Summary Stats */}
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div className="bg-destructive/10 p-3 rounded-lg border border-destructive/20">
+                <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-1">
+                  Total Predicted Loss
+                </p>
+                <p className="text-2xl font-bold text-destructive">
+                  $
+                  {predictWaste(ingredients)
+                    .reduce((s, w) => s + w.wasteValue, 0)
+                    .toFixed(0)}
+                </p>
+                <p className="text-[9px] text-muted-foreground mt-1">
+                  Next 7 days
+                </p>
+              </div>
+
+              <div className="bg-warning/10 p-3 rounded-lg border border-warning/20">
+                <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-1">
+                  Items at Risk
+                </p>
+                <p className="text-2xl font-bold text-warning">
+                  {predictWaste(ingredients).length}
+                </p>
+                <p className="text-[9px] text-muted-foreground mt-1">
+                  Will expire soon
+                </p>
+              </div>
+            </div>
+
+            {/* Top 5 Waste Risks */}
+            <div className="flex-1 space-y-2 overflow-y-auto">
+              {predictWaste(ingredients)
+                .slice(0, 5)
+                .map((item, idx) => {
+                  const isCritical = item.expiresIn <= 2;
+                  return (
+                    <div
+                      key={item.ingredientId}
+                      className={`p-3 rounded-lg border transition-all ${
+                        isCritical
+                          ? "bg-destructive/10 border-destructive/30"
+                          : "bg-secondary/30 border-white/5"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-lg font-bold text-muted-foreground">
+                            #{idx + 1}
+                          </span>
+                          <span className="text-sm font-semibold text-white truncate">
+                            {item.ingredientName}
+                          </span>
+                        </div>
+                        <span
+                          className={`text-xs font-bold px-2 py-0.5 rounded ${
+                            isCritical
+                              ? "bg-destructive text-white"
+                              : "bg-warning/20 text-warning"
+                          }`}
+                        >
+                          {item.expiresIn}d
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">
+                          Will waste: {item.predictedWaste.toFixed(1)}{" "}
+                          {item.unit}
+                        </span>
+                        <span className="font-bold text-destructive">
+                          -${item.wasteValue.toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+
+              {predictWaste(ingredients).length === 0 && (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <UtensilsCrossed className="h-12 w-12 text-success mb-3 opacity-50" />
+                  <p className="text-sm font-semibold text-success">
+                    No Waste Predicted!
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    All ingredients on track
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
