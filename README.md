@@ -78,67 +78,18 @@ npm run dev
 
 Open http://localhost:3000 and you should see the landing page.
 
-## Features Worth Mentioning
-
-**The AI Chat Actually Works**
-
-Most AI chatbots give you generic answers. This one has access to your actual inventory data, so when you ask "what's going to expire soon?" it tells you the real answer with actual quantities and costs.
-
-**Forecast Visualizations**
-
-The forecast chart has this animation where the line draws itself across the graph. Took way too long to get right but it looks cool.
-
-**Real-Time Calculations**
-
-Everything updates instantly - days of stock remaining, reorder suggestions, waste predictions. No waiting around for reports to generate.
-
-**It's Actually Responsive**
-
-Works on mobile, tablet, desktop. We tested it.
-
 ## What We're Working On
 
 - Multi-restaurant support (right now it's built for one location)
 - Connecting to POS systems like Toast and Square
 - Mobile apps for iOS and Android
-- Better ML models (thinking about using Prophet or LSTM)
-- Actually letting you place orders directly with suppliers
-
-## Known Issues
-
-- The Supabase CLI warnings in the build logs are annoying but harmless
-- Forecast generation can be slow if you have years of historical data (we only tested with a few months)
-- The landing page scroll animations might be choppy on older devices
-- There's no user authentication yet (everything is open)
-
-## Contributing
-
-If you want to contribute, cool. Just fork the repo, make your changes, and open a PR. Please don't break the build.
-
-Try to match the existing code style - we use TypeScript for everything and Tailwind for styling.
-
-## Hackathon Notes
-
-Built in 36 hours at UGAHacks 11. We had some team conflicts around hour 30 when everyone was exhausted, learned the hard way not to use `git push --force`, and dealt with way too many merge conflicts.
-
-But we shipped it. The demo worked. The judges liked it.
-
-Some things we wanted to add but didn't have time:
-- Email alerts for critical stock
-- Integration with accounting software
-- Recipe builder with cost calculations
-- Waste analytics dashboard
-- Voice commands for the AI
+- Letting you place orders directly with suppliers
 
 Maybe next time.
 
-## License
-
-MIT - do whatever you want with it.
-
 ## Team
 
-Built by Rayan Batada and Zayanh1 at UGAHacks 11.
+Built by Rayan Batada, Zayanh1, SaudKasumbi, and Sivasaran at UGAHacks 11.
 
 Powered by coffee, Taco Bell, and the kind of sleep deprivation that makes you think a taco-themed inventory app is a good idea at 3 AM.
 
