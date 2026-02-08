@@ -7,7 +7,6 @@ import {
   Package,
   Sparkles,
   ChevronRight,
-  ScanBarcode,
   ChefHat,
   ArrowUp,
   ArrowDown,
@@ -116,9 +115,6 @@ export default function InventoryPage() {
             {ingredients.length} items tracked
           </p>
         </div>
-        <button className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.06] bg-secondary transition-colors hover:bg-secondary/80">
-          <ScanBarcode className="h-5 w-5 text-primary" />
-        </button>
       </div>
 
       {/* View Mode Toggle */}

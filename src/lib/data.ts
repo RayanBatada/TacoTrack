@@ -254,3 +254,39 @@ export function formatForecastInsights(forecasts: any[]): string {
   const insights = sorted.map(f => `${f.dish_name}: ${f.predicted_quantity} units (${f.confidence})`).join(" | ");
   return insights;
 }
+
+// Add this type near the top with other types
+export interface Order {
+  id: string;
+  vendor: string;
+  items: Array<{
+    ingredientId: string;
+    quantity: number;  // Changed from qty
+    unit_cost: number; // Changed from unitCost
+  }>;
+  status: string;
+  deliveryDate: string;
+  totalCost: number;
+}
+export async function getOrders(): Promise<Order[]> {
+  const { data, error } = await supabase
+    .from("orders")
+    .select("*")
+    .order("delivery_date", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching orders:", error);
+    return [];
+  }
+
+  return (
+    data?.map((row: any) => ({
+      id: row.id,
+      vendor: row.vendor,
+      items: row.items, // Already JSONB, no parsing needed
+      status: row.status,
+      deliveryDate: row.delivery_date,
+      totalCost: row.total_cost,
+    })) || []
+  );
+}
