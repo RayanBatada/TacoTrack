@@ -152,24 +152,24 @@ export default function HomePage() {
     if (showForecast && forecast.length > 0) {
       setForecastAnimProgress(0);
 
+      // Smooth animation over 2 seconds
+      const startTime = Date.now();
       const duration = 2000;
-      const steps = 60;
-      const interval = duration / steps;
-      let currentStep = 0;
 
-      const animationInterval = setInterval(() => {
-        currentStep++;
-        setForecastAnimProgress(currentStep / steps);
+      const animate = () => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
 
-        if (currentStep >= steps) {
-          clearInterval(animationInterval);
-          setForecastAnimProgress(1);
+        setForecastAnimProgress(progress);
+
+        if (progress < 1) {
+          requestAnimationFrame(animate);
         }
-      }, interval);
+      };
 
-      return () => clearInterval(animationInterval);
+      requestAnimationFrame(animate);
     }
-  }, [showForecast, forecast]);
+  }, [showForecast, forecast.length]); // Only depend on length, not full array
 
   // ===========================================================================
   // FETCH DATA ON PAGE LOAD - Get all data from database
@@ -742,31 +742,23 @@ export default function HomePage() {
                   </div>
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart
-                      data={forecast
-                        .slice(
-                          0,
-                          Math.max(
-                            1,
-                            Math.ceil(forecast.length * forecastAnimProgress),
-                          ),
-                        )
-                        .map((f) => {
-                          const date = new Date(f.date);
-                          return {
-                            day: [
-                              "Sun",
-                              "Mon",
-                              "Tue",
-                              "Wed",
-                              "Thu",
-                              "Fri",
-                              "Sat",
-                            ][date.getDay()],
-                            value: f.predicted_quantity,
-                            fullDate: f.date,
-                            confidence: f.confidence,
-                          };
-                        })}
+                      data={forecast.map((f) => {
+                        const date = new Date(f.date);
+                        return {
+                          day: [
+                            "Sun",
+                            "Mon",
+                            "Tue",
+                            "Wed",
+                            "Thu",
+                            "Fri",
+                            "Sat",
+                          ][date.getDay()],
+                          value: f.predicted_quantity,
+                          fullDate: f.date,
+                          confidence: f.confidence,
+                        };
+                      })}
                       margin={{ top: 40, right: 5, left: 5, bottom: 10 }}
                     >
                       <defs>
@@ -848,8 +840,9 @@ export default function HomePage() {
                         stroke="#22d3ee"
                         strokeWidth={3}
                         fill="url(#forecastGrad)"
-                        animationDuration={500}
-                        dot={{ r: 4, fill: "#22d3ee", strokeWidth: 0 }}
+                        animationDuration={2000}
+                        animationEasing="ease-out"
+                        dot={false}
                         activeDot={{
                           r: 6,
                           fill: "#fff",
@@ -918,11 +911,16 @@ export default function HomePage() {
                           axisLine={false}
                           tickLine={false}
                           width={40}
+                          allowDecimals={false}
                         />
 
                         <Tooltip
                           contentStyle={tooltipStyle}
                           cursor={{ stroke: "#d946ef", strokeWidth: 1 }}
+                          formatter={(value: number) => [
+                            Math.round(value),
+                            trendView === "ingredients" ? "Usage" : "Sales",
+                          ]}
                         />
 
                         <Area
