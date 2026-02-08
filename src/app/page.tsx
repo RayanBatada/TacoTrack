@@ -1045,40 +1045,40 @@ export default function HomePage() {
                 </div>
               </div>
 
-            {wasteChartData.length > 0 && (
-              <div className="flex-1 flex items-center justify-center gap-3">
-                <div className="w-[55%] h-full flex items-center justify-center">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={wasteChartData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={32}
-                        outerRadius={62}
-                        paddingAngle={0}
-                        dataKey="value"
-                        isAnimationActive={false}
-                        stroke="#ffffff"
-                        strokeWidth={1.5}
-                      >
-                        {wasteChartData.map((entry, index) => (
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={WASTE_COLORS[index % WASTE_COLORS.length]}
-                          />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        contentStyle={tooltipStyle}
-                        formatter={(value: number) => [
-                          `$${value.toFixed(2)}`,
-                          "Cost",
-                        ]}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
+              {wasteChartData.length > 0 && (
+                <div className="flex-1 flex items-center justify-center gap-3">
+                  <div className="w-[55%] h-full flex items-center justify-center">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={wasteChartData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={32}
+                          outerRadius={62}
+                          paddingAngle={2}
+                          dataKey="value"
+                          isAnimationActive={false}
+                          stroke="#ffffff"
+                          strokeWidth={1.5}
+                        >
+                          {wasteChartData.map((entry, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={WASTE_COLORS[index % WASTE_COLORS.length]}
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          contentStyle={tooltipStyle}
+                          formatter={(value: number) => [
+                            `$${value.toFixed(2)}`,
+                            "Cost",
+                          ]}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
 
                   <div className="flex flex-col gap-2 justify-center text-[15px]">
                     {wasteChartData.map((item, idx) => (
