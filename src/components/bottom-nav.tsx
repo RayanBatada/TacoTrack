@@ -26,7 +26,7 @@ export function BottomNav() {
     { href: "/recipes", label: "Recipes", icon: ChefHat },
     { href: "/orders", label: "Orders", icon: ShoppingCart },
     { href: "/insights", label: "Insights", icon: TrendingUp },
-    { href: "/wrapped", label: "Wrapped", icon: Sparkles },
+    { href: "/wrapped", label: "TacoTrack Wrapped", icon: Sparkles },
   ];
 
   return (
@@ -55,10 +55,11 @@ export function BottomNav() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all ${isActive
-                ? "bg-primary/10 text-primary shadow-sm"
-                : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                }`}
+              className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all ${
+                isActive
+                  ? "bg-primary/10 text-primary shadow-sm"
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+              }`}
             >
               <Icon className="h-5 w-5" />
               {item.label}
@@ -108,10 +109,11 @@ export function BottomNav() {
         >
           <Link
             href="/settings"
-            className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all ${pathname === "/settings"
-              ? "bg-primary/10 text-primary shadow-sm"
-              : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-              }`}
+            className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all ${
+              pathname === "/settings"
+                ? "bg-primary/10 text-primary shadow-sm"
+                : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+            }`}
           >
             <Settings className="h-5 w-5" />
             Settings
