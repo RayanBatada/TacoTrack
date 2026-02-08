@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { FeatureCard } from "@/components/feature-card";
 import { ScrollIndicator } from "@/components/scroll-indicator";
+import { getRecipes, getIngredients, getWasteEntries } from "@/lib/cache";
 
 export default function LandingPage() {
   const router = useRouter();
@@ -30,8 +31,28 @@ export default function LandingPage() {
   const heroOpacity = useTransform(scrollY, [0, 300], [1, 0]);
   const heroY = useTransform(scrollY, [0, 300], [0, -100]);
 
-  const handleEnterDashboard = () => {
+  const handleEnterDashboard = async () => {
     setIsZooming(true);
+    
+    // Fire prefetch in background without awaiting (non-blocking)
+    Promise.all([
+      getRecipes(),
+      getIngredients(),
+      getWasteEntries(),
+    ])
+      .then(([recipes]) => {
+        // Prefetch forecast for first dish - don't await
+        if (recipes && recipes.length > 0) {
+          getForecast(recipes[0].id, 7).catch(() => {
+            // Silently fail
+          });
+        }
+      })
+      .catch(() => {
+        // Silently fail prefetch
+      });
+    
+    // Navigation always happens after 1200ms regardless of prefetch status
     setTimeout(() => {
       router.push("/dashboard");
     }, 1200);

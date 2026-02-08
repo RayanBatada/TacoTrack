@@ -12,6 +12,12 @@ import {
 
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
 
+interface ForecastResult {
+  date: string;
+  predicted_quantity: number;
+  confidence: 'high' | 'medium' | 'low';
+}
+
 interface CacheEntry<T> {
   data: T;
   timestamp: number;
@@ -21,6 +27,7 @@ interface Cache {
   recipes: CacheEntry<Recipe[]> | null;
   ingredients: CacheEntry<Ingredient[]> | null;
   wasteEntries: CacheEntry<WasteEntry[]> | null;
+  forecasts: Map<string, CacheEntry<ForecastResult[]>>;
 }
 
 // Module-level cache that persists across page navigations
@@ -28,6 +35,7 @@ const dataCache: Cache = {
   recipes: null,
   ingredients: null,
   wasteEntries: null,
+  forecasts: new Map(),
 };
 
 const isCacheValid = (entry: CacheEntry<any> | null): boolean => {
@@ -93,6 +101,54 @@ export const getWasteEntries = async (): Promise<WasteEntry[]> => {
 };
 
 /**
+ * Get or fetch forecast with caching
+ * Returns cached forecast if available and fresh, otherwise fetches from API
+ */
+export const getForecast = async (
+  recipeId: string,
+  days: number = 7
+): Promise<ForecastResult[]> => {
+  const cacheKey = `${recipeId}:${days}`;
+
+  // Check if forecast is cached and valid
+  const cached = dataCache.forecasts.get(cacheKey);
+  if (cached && isCacheValid(cached)) {
+    console.log(`📦 Using cached forecast for ${recipeId}`);
+    return cached.data;
+  }
+
+  console.log(`📡 Fetching fresh forecast for ${recipeId}`);
+  try {
+    // Add 15 second timeout to prevent hanging requests
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+    const response = await fetch("/api/forecast", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ recipeId, forecastDays: days }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+    const data = await response.json();
+
+    if (data.success && data.forecast) {
+      dataCache.forecasts.set(cacheKey, {
+        data: data.forecast,
+        timestamp: Date.now(),
+      });
+      return data.forecast;
+    }
+
+    return [];
+  } catch (err) {
+    console.error("Error fetching forecast:", err);
+    return [];
+  }
+};
+
+/**
  * Invalidate all cache entries
  * Useful for manual refresh or after data mutations
  */
@@ -100,6 +156,7 @@ export const invalidateCache = (): void => {
   dataCache.recipes = null;
   dataCache.ingredients = null;
   dataCache.wasteEntries = null;
+  dataCache.forecasts.clear();
   console.log("🔄 Cache invalidated");
 };
 

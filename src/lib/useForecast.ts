@@ -1,5 +1,6 @@
 // lib/useForecast.ts
 import { useState } from 'react';
+import { getForecast as getCachedForecast } from './cache';
 
 interface ForecastResult {
   date: string;
@@ -17,21 +18,13 @@ export function useForecast() {
     setError(null);
 
     try {
-      const response = await fetch('/api/forecast', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ recipeId, forecastDays: days })
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setForecast(data.forecast);
-      } else {
-        setError(data.error);
-      }
+      // Use cached forecast if available, otherwise fetch fresh
+      const result = await getCachedForecast(recipeId, days);
+      setForecast(result);
     } catch (err: any) {
+      console.error("Forecast error:", err);
       setError(err.message);
+      setForecast([]);
     } finally {
       setLoading(false);
     }
