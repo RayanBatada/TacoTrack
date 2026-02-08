@@ -500,9 +500,9 @@ export default function InsightsPage() {
         title="Margin Analysis"
         insight={`${lowestMarginDish?.name || "This item"} has the lowest margin at ${lowestMarginDish?.margin || 0}% — review recipe costs and pricing.`}
       >
-        <div className="h-56 flex items-center justify-center">
+        <div className="h-56">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={marginData} layout="vertical" margin={{ left: 200, right: 200, top: 5, bottom: 5 }}>
+            <BarChart data={marginData} layout="vertical" margin={{ left: 200, right: 60, top: 5, bottom: 5 }}>
               <XAxis
                 type="number"
                 tick={{ fontSize: 10, fill: "#d8b4fe" }}
