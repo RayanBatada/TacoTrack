@@ -13,8 +13,6 @@ import {
   X,
 } from "lucide-react";
 import {
-  getIngredients,
-  getRecipes,
   daysOfStock,
   urgencyLevel,
   daysUntilExpiry,
@@ -22,6 +20,8 @@ import {
   type Ingredient,
   type Recipe,
 } from "@/lib/data";
+
+import { getIngredients, getRecipes } from "@/lib/cache";
 
 type ViewMode = "ingredients" | "dishes";
 type SortMode = "urgency" | "expiry" | "quantity";

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getRecipes, getIngredients, getWasteEntries } from "@/lib/data-db";
+import { getRecipes, getIngredients, getWasteEntries } from "@/lib/cache";
 import { supabase } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";

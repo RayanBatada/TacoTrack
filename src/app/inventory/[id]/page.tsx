@@ -13,7 +13,6 @@ import {
   Clock,
 } from "lucide-react";
 import {
-  getIngredients,
   daysOfStock,
   urgencyLevel,
   daysUntilExpiry,
@@ -23,6 +22,8 @@ import {
   weeklyUsageData,
   type Ingredient,
 } from "@/lib/data";
+
+import { getIngredients } from "@/lib/cache";
 import {
   AreaChart,
   Area,

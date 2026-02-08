@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getRecipes, type Recipe } from "@/lib/data";
+import { type Recipe } from "@/lib/data";
+import { getRecipes } from "@/lib/cache";
 import { UtensilsCrossed, Search, Plus } from "lucide-react";
 
 export default function RecipesPage() {

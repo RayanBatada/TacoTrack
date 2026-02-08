@@ -1,13 +1,11 @@
 "use client";
 
 import {
-  getRecipes,
-  getIngredients,
-  getWasteEntries,
   type Recipe,
   type Ingredient,
   type WasteEntry,
 } from "@/lib/data-db";
+import { getRecipes, getIngredients, getWasteEntries } from "@/lib/cache";
 import { useState, useEffect } from "react";
 import { ArrowRight, Download, Share2, ChevronDown } from "lucide-react";
 import { predictWaste } from "@/lib/data";

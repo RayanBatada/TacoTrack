@@ -11,11 +11,12 @@ import {
   Lightbulb,
 } from "lucide-react";
 import {
-  getIngredients,
   getOrders,
   type Ingredient,
   type Order,
 } from "@/lib/data";
+
+import { getIngredients } from "@/lib/cache";
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);

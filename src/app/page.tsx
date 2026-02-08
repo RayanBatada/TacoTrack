@@ -32,9 +32,6 @@ import {
 
 // Data functions and types from our database
 import {
-  getRecipes,
-  getIngredients,
-  getWasteEntries,
   daysOfStock,
   avgDailyUsage,
   foodCostPercent,
@@ -45,6 +42,13 @@ import {
   type Ingredient,
   type WasteEntry,
 } from "@/lib/data";
+
+// Cached data fetchers for instant page loads
+import {
+  getRecipes,
+  getIngredients,
+  getWasteEntries,
+} from "@/lib/cache";
 
 // Chart components from recharts library
 // @ts-expect-error Cell has deprecation warning but is required for the PieChart

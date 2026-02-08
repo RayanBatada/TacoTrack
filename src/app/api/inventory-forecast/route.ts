@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
-import { getIngredients, daysOfStock, avgDailyUsage, suggestedOrderQty } from "@/lib/data";
+import { daysOfStock, avgDailyUsage, suggestedOrderQty } from "@/lib/data";
+import { getIngredients } from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
 
