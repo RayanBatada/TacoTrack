@@ -238,17 +238,30 @@ export default function InsightsPage() {
   const topSellerMargin = topSellers[0]?.margin || 0;
   const topSellerSales = topSellers[0]?.avgSales || 0;
 
-  // FORECAST PROCESSING - Same logic as dashboard
-  const forecastChartData = forecasts
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+  // FORECAST PROCESSING - Aggregate by date to avoid duplicates
+  const forecastsByDate = forecasts.reduce(
+    (acc: Record<string, { total: number; count: number; confidence: string }>, f) => {
+      const dateKey = f.date;
+      if (!acc[dateKey]) {
+        acc[dateKey] = { total: 0, count: 0, confidence: f.confidence };
+      }
+      acc[dateKey].total += f.predicted_quantity;
+      acc[dateKey].count += 1;
+      return acc;
+    },
+    {},
+  );
+
+  const forecastChartData = Object.entries(forecastsByDate)
+    .sort(([a], [b]) => new Date(a).getTime() - new Date(b).getTime())
     .slice(0, 14)
-    .map((f) => ({
-      date: new Date(f.date).toLocaleDateString("en-US", {
+    .map(([dateStr, data]) => ({
+      date: new Date(dateStr).toLocaleDateString("en-US", {
         month: "short",
         day: "numeric",
       }),
-      predicted: f.predicted_quantity,
-      confidence: f.confidence,
+      predicted: Math.round(data.total / data.count),
+      confidence: data.confidence,
     }));
 
   const forecastByDish = forecasts.reduce(
@@ -341,6 +354,7 @@ export default function InsightsPage() {
                     tick={{ fontSize: 10, fill: "#d8b4fe" }}
                     axisLine={false}
                     tickLine={false}
+                    interval="preserveStartEnd"
                   />
                   <YAxis
                     tick={{ fontSize: 10, fill: "#d8b4fe" }}
@@ -456,6 +470,7 @@ export default function InsightsPage() {
                 tick={{ fontSize: 10, fill: "#d8b4fe" }}
                 axisLine={false}
                 tickLine={false}
+                interval={0}
               />
               <YAxis hide />
               <Tooltip contentStyle={tooltipStyle} />
@@ -509,6 +524,7 @@ export default function InsightsPage() {
                 axisLine={false}
                 tickLine={false}
                 domain={[0, 100]}
+                tickCount={6}
               />
               <YAxis
                 dataKey="name"
