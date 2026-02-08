@@ -162,3 +162,45 @@ export function totalWasteToday(wasteEntries: any[]): number {
     .filter((w) => w.date === today)
     .reduce((sum, w) => sum + w.costLost, 0);
 }
+
+export function predictWaste(ingredients: Ingredient[]): {
+  ingredientId: string;
+  ingredientName: string;
+  category: string;
+  currentStock: number;
+  unit: string;
+  expiresIn: number;
+  avgDailyUsage: number;
+  willUseBeforeExpiry: number;
+  predictedWaste: number;
+  wasteValue: number;
+  costPerUnit: number;
+}[] {
+  return ingredients
+    .map((ing) => {
+      const expiryDate = new Date(ing.expiryDate);
+      const now = new Date();
+      const expiresIn = Math.max(0, Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+      
+      const avgUsage = avgDailyUsage(ing.dailyUsage || []);
+      const willUse = avgUsage * expiresIn;
+      const predictedWaste = Math.max(0, ing.onHand - willUse);
+      const wasteValue = predictedWaste * ing.costPerUnit;
+
+      return {
+        ingredientId: ing.id,
+        ingredientName: ing.name,
+        category: ing.category,
+        currentStock: ing.onHand,
+        unit: ing.unit,
+        expiresIn,
+        avgDailyUsage: avgUsage,
+        willUseBeforeExpiry: willUse,
+        predictedWaste,
+        wasteValue,
+        costPerUnit: ing.costPerUnit,
+      };
+    })
+    .filter((item) => item.predictedWaste > 0) // Only show items that will waste
+    .sort((a, b) => b.wasteValue - a.wasteValue); // Sort by $ impact
+}
