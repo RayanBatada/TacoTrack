@@ -352,22 +352,31 @@ export default function HomePage() {
           text: "🔮 Generating AI forecast for the next 7 days...",
         },
       ]);
+
+      // Make sure we're in dishes view
+      if (trendView !== "dishes") {
+        setTrendView("dishes");
+      }
+
       try {
         await generateForecast(selectedDish, 7);
+        setShowForecast(true); // ← THIS WAS MISSING!
+
         setChatMessages((prev) => {
           const history = [...prev];
           history[history.length - 1] = {
             role: "bot",
-            text: "📊 Forecast complete! Check the Trends section to see predictions by day. This helps you prep the right quantities and avoid waste.",
+            text: "📊 Forecast complete! Check the Trends section above to see the AI predictions. The glowing line shows predicted sales for the next 7 days.",
           };
           return history;
         });
       } catch (e) {
+        console.error("Forecast error:", e);
         setChatMessages((prev) => {
           const history = [...prev];
           history[history.length - 1] = {
             role: "bot",
-            text: "Sorry, I couldn't generate the forecast. Make sure you've selected a dish.",
+            text: `Sorry, I couldn't generate the forecast. Error: ${e instanceof Error ? e.message : "Unknown error"}`,
           };
           return history;
         });
