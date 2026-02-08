@@ -152,24 +152,24 @@ export default function HomePage() {
     if (showForecast && forecast.length > 0) {
       setForecastAnimProgress(0);
 
-      // Smooth animation over 2 seconds
-      const startTime = Date.now();
       const duration = 2000;
+      const steps = 60;
+      const interval = duration / steps;
+      let currentStep = 0;
 
-      const animate = () => {
-        const elapsed = Date.now() - startTime;
-        const progress = Math.min(elapsed / duration, 1);
+      const animationInterval = setInterval(() => {
+        currentStep++;
+        setForecastAnimProgress(currentStep / steps);
 
-        setForecastAnimProgress(progress);
-
-        if (progress < 1) {
-          requestAnimationFrame(animate);
+        if (currentStep >= steps) {
+          clearInterval(animationInterval);
+          setForecastAnimProgress(1);
         }
-      };
+      }, interval);
 
-      requestAnimationFrame(animate);
+      return () => clearInterval(animationInterval);
     }
-  }, [showForecast, forecast.length]); // Only depend on length, not full array
+  }, [showForecast, forecast]);
 
   // ===========================================================================
   // FETCH DATA ON PAGE LOAD - Get all data from database
@@ -742,23 +742,31 @@ export default function HomePage() {
                   </div>
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart
-                      data={forecast.map((f) => {
-                        const date = new Date(f.date);
-                        return {
-                          day: [
-                            "Sun",
-                            "Mon",
-                            "Tue",
-                            "Wed",
-                            "Thu",
-                            "Fri",
-                            "Sat",
-                          ][date.getDay()],
-                          value: f.predicted_quantity,
-                          fullDate: f.date,
-                          confidence: f.confidence,
-                        };
-                      })}
+                      data={forecast
+                        .slice(
+                          0,
+                          Math.max(
+                            1,
+                            Math.ceil(forecast.length * Math.min(1, forecastAnimProgress * 2)),
+                          ),
+                        )
+                        .map((f) => {
+                          const date = new Date(f.date);
+                          return {
+                            day: [
+                              "Sun",
+                              "Mon",
+                              "Tue",
+                              "Wed",
+                              "Thu",
+                              "Fri",
+                              "Sat",
+                            ][date.getDay()],
+                            value: f.predicted_quantity,
+                            fullDate: f.date,
+                            confidence: f.confidence,
+                          };
+                        })}
                       margin={{ top: 40, right: 5, left: 5, bottom: 10 }}
                     >
                       <defs>
@@ -780,6 +788,29 @@ export default function HomePage() {
                             stopOpacity={0}
                           />
                         </linearGradient>
+                        <style>{`
+                          @keyframes drawStroke {
+                            0% {
+                              stroke-dashoffset: 2000;
+                              opacity: 0;
+                            }
+                            50% {
+                              stroke-dashoffset: 2000;
+                              opacity: 0;
+                            }
+                            51% {
+                              opacity: 1;
+                            }
+                            100% {
+                              stroke-dashoffset: 0;
+                              opacity: 1;
+                            }
+                          }
+                          .forecast-stroke {
+                            animation: drawStroke 2s ease-in-out forwards;
+                            stroke-dasharray: 2000;
+                          }
+                        `}</style>
                       </defs>
                       <XAxis
                         dataKey="day"
@@ -840,16 +871,29 @@ export default function HomePage() {
                         stroke="#22d3ee"
                         strokeWidth={3}
                         fill="url(#forecastGrad)"
-                        animationDuration={2000}
-                        animationEasing="ease-out"
-                        dot={false}
+                        className={forecastAnimProgress > 0 ? "forecast-stroke" : ""}
+                        dot={(props) => {
+                          const { cx, cy } = props;
+                          // Dots fade in during first 50% of animation as they appear
+                          const dotFadeProgress = Math.min(1, forecastAnimProgress * 4);
+                          return (
+                            <circle
+                              cx={cx}
+                              cy={cy}
+                              r={4 * dotFadeProgress}
+                              fill="#22d3ee"
+                              fillOpacity={dotFadeProgress * 0.8}
+                              strokeWidth={0}
+                            />
+                          );
+                        }}
                         activeDot={{
                           r: 6,
                           fill: "#fff",
                           stroke: "#22d3ee",
                           strokeWidth: 2,
                         }}
-                        isAnimationActive={true}
+                        isAnimationActive={false}
                       />
                     </AreaChart>
                   </ResponsiveContainer>
