@@ -1,6 +1,8 @@
 # TacoTrack
 
-AI-powered inventory management for restaurants. Built at UGAHacks 11 because we were tired of watching good food go to waste.
+TacoTrack is live and accessible here: AI-powered inventory management for restaurants. Built at UGAHacks 11 because we were tired of watching good food go to waste.
+
+https://taco-track-lgpau2anr-rayan-batads-projects.vercel.app/inventory
 
 ## What is this?
 
