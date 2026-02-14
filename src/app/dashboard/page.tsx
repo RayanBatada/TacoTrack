@@ -47,7 +47,6 @@ import {
 import { getRecipes, getIngredients, getWasteEntries } from "@/lib/cache";
 
 // Chart components from recharts library
-// @ts-expect-error Cell has deprecation warning but is required for the PieChart
 import {
   AreaChart,
   Area,
@@ -55,9 +54,6 @@ import {
   XAxis,
   YAxis,
   Tooltip,
-  PieChart,
-  Pie,
-  Cell,
 } from "recharts";
 
 // =============================================================================
@@ -114,7 +110,7 @@ export default function HomePage() {
   const [showForecast, setShowForecast] = useState(false);
   const [generating, setGenerating] = useState(false);
 
-  // ADD THIS - Animation progress for drawing the forecast line
+  // Animation progress for drawing the forecast line
   const [forecastAnimProgress, setForecastAnimProgress] = useState(0);
 
   // FULLSCREEN CHAT STATE
@@ -147,7 +143,7 @@ export default function HomePage() {
     return () => clearInterval(interval);
   }, []);
 
-  // ADD THIS NEW useEffect - Forecast line animation
+  // Forecast line animation
   useEffect(() => {
     if (showForecast && forecast.length > 0) {
       setForecastAnimProgress(0);
@@ -306,7 +302,7 @@ export default function HomePage() {
   };
 
   // ===========================================================================
-  // WASTE DATA PREPARATION - For pie chart
+  // WASTE DATA PREPARATION
   // ===========================================================================
 
   const topSellers = topSellingItems(recipes, ingredients);
@@ -353,14 +349,13 @@ export default function HomePage() {
         },
       ]);
 
-      // Make sure we're in dishes view
       if (trendView !== "dishes") {
         setTrendView("dishes");
       }
 
       try {
         await generateForecast(selectedDish, 7);
-        setShowForecast(true); // ← THIS WAS MISSING!
+        setShowForecast(true);
 
         setChatMessages((prev) => {
           const history = [...prev];
@@ -523,7 +518,7 @@ export default function HomePage() {
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="mt-auto">
+          <div className="shrink-0 pt-2">
             <div className="flex gap-2">
               <input
                 type="text"
@@ -547,21 +542,23 @@ export default function HomePage() {
   }
 
   // ===========================================================================
-  // MAIN RENDER - The actual dashboard UI
+  // MAIN RENDER - The actual dashboard UI (4 quadrants)
   // ===========================================================================
   return (
     <div className="h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-6 font-inter overflow-hidden flex flex-col">
-      <div className="flex-1 min-h-0 flex flex-col space-y-4">
-        {/* TOP SECTION - Action Required & Trends */}
+      <div className="flex-1 min-h-0 flex flex-col gap-4">
+        {/* ================================================================= */}
+        {/* TOP ROW - Action Required & Trends (each takes 50% width)         */}
+        {/* ================================================================= */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 min-h-0">
-          {/* LEFT COLUMN - ACTION REQUIRED TABLE */}
+          {/* TOP-LEFT: ACTION REQUIRED TABLE */}
           <div className="glass-card rounded-xl p-5 flex flex-col relative overflow-hidden">
-            <div className="flex items-center gap-2 mb-4 text-white">
+            <div className="flex items-center gap-2 mb-4 text-white shrink-0">
               <AlertTriangle className="h-5 w-5" />
               <h2 className="font-bold tracking-wide">ACTION REQUIRED</h2>
             </div>
 
-            <div className="grid grid-cols-4 gap-3 mb-3 px-2">
+            <div className="grid grid-cols-4 gap-3 mb-3 px-2 shrink-0">
               <div className="text-xs font-semibold text-white uppercase tracking-wider">
                 Product
               </div>
@@ -576,7 +573,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="border-t border-white/10 mb-3" />
+            <div className="border-t border-white/10 mb-3 shrink-0" />
 
             <div className="space-y-2">
               {stockItems.slice(0, 5).map((item) => {
@@ -631,14 +628,13 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* RIGHT COLUMN - TRENDS GRAPH */}
+          {/* TOP-RIGHT: TRENDS GRAPH */}
           <div className="glass-card rounded-xl p-5 flex flex-col">
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-3 shrink-0">
               <div className="flex items-center gap-2">
                 <Activity className="h-5 w-5 text-primary" />
                 <h2 className="font-bold tracking-wide">TRENDS</h2>
 
-                {/* Forecast button next to title - always visible */}
                 <button
                   onClick={() => {
                     if (trendView === "dishes" && selectedDish) {
@@ -688,7 +684,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="mb-3 relative">
+            <div className="mb-3 relative shrink-0">
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 className="w-full flex items-center justify-between px-3 py-2 bg-secondary/50 border border-primary/20 rounded-lg hover:bg-secondary/70 transition-colors text-sm"
@@ -739,7 +735,6 @@ export default function HomePage() {
             {/* The actual line graph OR forecast results */}
             <div className="flex-1 w-full min-h-0">
               {showForecast && forecast.length > 0 ? (
-                // SHOW FORECAST RESULTS WITH ANIMATION
                 <div className="h-full w-full bg-secondary/20 rounded-lg border border-white/5 p-0 relative">
                   <div className="absolute top-3 right-3 z-10">
                     <button
@@ -888,7 +883,6 @@ export default function HomePage() {
                         }
                         dot={(props) => {
                           const { cx, cy } = props;
-                          // Dots fade in during first 50% of animation as they appear
                           const dotFadeProgress = Math.min(
                             1,
                             forecastAnimProgress * 4,
@@ -928,7 +922,6 @@ export default function HomePage() {
                   </div>
                 </div>
               ) : (
-                // SHOW TREND GRAPH
                 <div className="h-full w-full bg-secondary/20 rounded-lg border border-white/5 p-0 relative">
                   {activeTrendData && activeTrendData.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
@@ -978,8 +971,8 @@ export default function HomePage() {
                         <Tooltip
                           contentStyle={tooltipStyle}
                           cursor={{ stroke: "#d946ef", strokeWidth: 1 }}
-                          formatter={(value: number) => [
-                            Math.round(value),
+                          formatter={(value: number | undefined) => [
+                            value !== undefined ? Math.round(value) : 0,
                             trendView === "ingredients" ? "Usage" : "Sales",
                           ]}
                         />
@@ -1007,10 +1000,12 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* BOTTOM SECTION - TacoTalk AI Chat & Waste Indicator */}
+        {/* ================================================================= */}
+        {/* BOTTOM ROW - TacoTalk AI & Food for Thought (each 50% width)      */}
+        {/* ================================================================= */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 min-h-0">
-          {/* LEFT COLUMN - TACOTALK AI CHATBOT */}
-          <div className="glass-card rounded-xl p-5 flex flex-col relative h-full min-h-0">
+          {/* BOTTOM-LEFT: TACOTALK AI CHATBOT */}
+          <div className="glass-card rounded-xl p-5 flex flex-col relative min-h-0">
             <div className="flex items-center justify-between gap-2 mb-2 text-warning shrink-0">
               <div className="flex items-center gap-2">
                 <MessageSquare className="h-4 w-4" />
@@ -1027,6 +1022,7 @@ export default function HomePage() {
               </button>
             </div>
 
+            {/* Chat messages - scrollable area */}
             <div className="flex-1 overflow-y-auto space-y-3 mb-3 pr-1 text-sm min-h-0">
               {chatMessages.map((msg, i) => (
                 <div
@@ -1066,7 +1062,8 @@ export default function HomePage() {
               <div ref={messagesEndRef} />
             </div>
 
-            <div className="mt-auto">
+            {/* Chat input - always pinned at bottom */}
+            <div className="shrink-0 pt-2">
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -1086,9 +1083,9 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* RIGHT COLUMN - FOOD FOR THOUGHT */}
-          <div className="glass-card rounded-xl p-5 flex flex-col">
-            <div className="flex items-center gap-2 mb-4 text-white">
+          {/* BOTTOM-RIGHT: FOOD FOR THOUGHT */}
+          <div className="glass-card rounded-xl p-5 flex flex-col min-h-0">
+            <div className="flex items-center gap-2 mb-4 text-white shrink-0">
               <UtensilsCrossed className="h-4 w-4" />
               <h2 className="font-bold text-sm tracking-wide text-[15px]">
                 FOOD FOR THOUGHT
@@ -1096,7 +1093,7 @@ export default function HomePage() {
             </div>
 
             {/* Summary Stats */}
-            <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="grid grid-cols-2 gap-3 mb-4 shrink-0">
               <div className="bg-destructive/10 p-3 rounded-lg border border-destructive/20">
                 <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-1">
                   Total Predicted Loss
@@ -1126,7 +1123,7 @@ export default function HomePage() {
             </div>
 
             {/* Top 5 Waste Risks */}
-            <div className="flex-1 space-y-2 overflow-y-auto">
+            <div className="flex-1 space-y-2 overflow-y-auto min-h-0">
               {predictWaste(ingredients)
                 .slice(0, 5)
                 .map((item, idx) => {
